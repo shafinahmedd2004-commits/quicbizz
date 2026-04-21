@@ -1,4 +1,4 @@
-// netlify/functions/steadfast.js
+// api/steadfast.js — Vercel Serverless Function
 const SF_BASE = 'https://portal.steadfast.com.bd/public/api/v1';
 
 const ALLOWED = [
@@ -16,30 +16,20 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS, body: '' };
-  }
+export default async function handler(req, res) {
+  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'POST only' }) };
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  let parsed;
-  try {
-    parsed = JSON.parse(event.body || '{}');
-  } catch (e) {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON: ' + e.message }) };
-  }
+  const { path, method = 'POST', body, api_key, secret_key } = req.body || {};
 
-  const { path, method = 'POST', body, api_key, secret_key } = parsed;
-
-  if (!path)       return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing: path' }) };
-  if (!api_key)    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing: api_key' }) };
-  if (!secret_key) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing: secret_key' }) };
+  if (!path)       return res.status(400).json({ error: 'Missing: path' });
+  if (!api_key)    return res.status(400).json({ error: 'Missing: api_key' });
+  if (!secret_key) return res.status(400).json({ error: 'Missing: secret_key' });
 
   if (!ALLOWED.some(p => path.startsWith(p))) {
-    return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Endpoint not allowed: ' + path }) };
+    return res.status(403).json({ error: 'Endpoint not allowed: ' + path });
   }
 
   const opts = {
@@ -58,24 +48,18 @@ exports.handler = async (event) => {
   try {
     const sfRes = await fetch(SF_BASE + path, opts);
     const rawText = await sfRes.text();
-
     let data;
     try {
       data = JSON.parse(rawText);
     } catch (_) {
       const clean = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
-      return {
-        statusCode: sfRes.status,
-        headers: CORS,
-        body: JSON.stringify({
-          error: `Steadfast returned non-JSON (HTTP ${sfRes.status})`,
-          detail: clean || rawText.slice(0, 200),
-        }),
-      };
+      return res.status(sfRes.status).json({
+        error: `Steadfast returned non-JSON (HTTP ${sfRes.status})`,
+        detail: clean || rawText.slice(0, 200),
+      });
     }
-
-    return { statusCode: sfRes.status, headers: CORS, body: JSON.stringify(data) };
+    return res.status(sfRes.status).json(data);
   } catch (err) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'Proxy error: ' + err.message }) };
+    return res.status(500).json({ error: 'Proxy error: ' + err.message });
   }
-};
+}
