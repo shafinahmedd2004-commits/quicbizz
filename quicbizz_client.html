@@ -4107,7 +4107,7 @@ async function sfReq(path, method, body) {
   var w = document.getElementById('sf-key-warning');
   if (w) w.style.display = 'none';
 
-  var res = await fetch('/.netlify/functions/steadfast', {
+  var res = await fetch('/api/steadfast', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({path:path, method:method, body:body||undefined, api_key:S.sfKey, secret_key:S.sfSecret})
