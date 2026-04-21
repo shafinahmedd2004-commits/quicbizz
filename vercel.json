@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/client", "destination": "/quicbizz_client.html" },
+    { "source": "/client/", "destination": "/quicbizz_client.html" },
+    { "source": "/admin", "destination": "/quicbizz_staff_admin.html" },
+    { "source": "/admin/", "destination": "/quicbizz_staff_admin.html" }
+  ]
+}
