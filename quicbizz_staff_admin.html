@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src * data: blob:;">
+  <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QuicBizz Staff Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -328,6 +330,12 @@ body.light-mode{
 </style>
 </head>
 <body>
+<!-- Security: admin access gate -->
+<div id="access-gate" style="display:none;position:fixed;inset:0;background:#0a0f1e;z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div style="font-size:64px;font-weight:900;color:#e8edf8">404</div>
+  <div style="color:#e8edf8;font-size:18px;font-weight:700">Page not found</div>
+  <div style="color:#8a9bc2;font-size:14px">The page you are looking for does not exist.</div>
+</div>
 
 <div id="toast"></div>
 
@@ -1785,7 +1793,21 @@ const DEMO_PRODUCTS=[
 // ════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════
+// Staff login rate limiter
+const _staffLoginAttempts={count:0,ts:0};
+function checkStaffRateLimit(){
+  const now=Date.now();
+  if(now-_staffLoginAttempts.ts>60000){_staffLoginAttempts.count=0;_staffLoginAttempts.ts=now;}
+  _staffLoginAttempts.count++;
+  if(_staffLoginAttempts.count>5){
+    const wait=Math.ceil((60000-(now-_staffLoginAttempts.ts))/1000);
+    toast('Too many attempts. Wait '+wait+'s.','error');
+    return false;
+  }
+  return true;
+}
 async function doLogin(){
+  if(!checkStaffRateLimit())return;
   const email=document.getElementById('l-email').value.trim().toLowerCase();
   const pass=document.getElementById('l-pass').value;
   const err=document.getElementById('login-error');
@@ -1803,6 +1825,7 @@ async function doLogin(){
       // Load staff record
       const {data:staffRec}=await sb.from('staff').select('*').eq('email',email).single();
       if(staffRec&&!staffRec.is_active){err.style.display='block';err.textContent='Account deactivated.';return;}
+      SA.staffEmail=email;
       SA.currentUser={
         email,
         name:staffRec?.name||data.user.email,
@@ -1825,6 +1848,10 @@ async function doLogin(){
     err.style.display='block';err.textContent=msg;shakeCard();
   }
   finally{if(btn){btn.disabled=false;btn.textContent='Sign in to Staff Panel →';}}
+}
+function sanitize(str){
+  if(!str)return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 function shakeCard(){const c=document.querySelector('.login-card');c.style.animation='shake .4s ease';setTimeout(()=>c.style.animation='',500);}
 async function doLogout(){
@@ -2179,10 +2206,31 @@ async function quickStatusChange(id, newStatus){
   const c=SA.clients.find(x=>String(x.id)===String(id));if(!c)return;
   const prev=c.status;
   c.status=newStatus;
-  const {error}=await sb.from('clients').update({status:newStatus}).eq('id',c.dbId||c.id);
+  const update={status:newStatus};
+  // When activating, ensure plan and mrr are set
+  if(newStatus==='Active'){
+    if(!c.plan||c.plan==='Trial')c.plan='Growth';
+    const mrrMap={Starter:2500,Growth:5500,Enterprise:14000};
+    if(!c.mrr||c.mrr===0)c.mrr=c.isFree?0:(mrrMap[c.plan]||5500);
+    update.plan=c.plan;
+    update.mrr=c.mrr;
+  }
+  const {error}=await sb.from('clients').update(update).eq('id',c.dbId||c.id);
   if(error){c.status=prev;toast('Error: '+error.message,'error');return;}
+  // Log activation in billing_history
+  if(newStatus==='Active'&&!c.isFree){
+    const mrrMap={Starter:2500,Growth:5500,Enterprise:14000};
+    await sb.from('billing_history').insert({
+      client_id:c.dbId||c.id,
+      plan:c.plan||'Growth',
+      amount:c.mrr||mrrMap[c.plan]||5500,
+      method:'manual',status:'paid',
+      description:'Manual activation by staff',
+      created_at:new Date().toISOString()
+    }).then(()=>{});
+  }
   renderClients();renderDashClients();
-  toast(`${c.name} → ${newStatus}`,'success');
+  toast(c.name+' → '+newStatus,'success');
 }
 
 async function quickSetFree(id, isFree){
@@ -2685,6 +2733,14 @@ async function loadStaffAccounts(){
   </tr>`).join('')}</tbody></table>`;
 }
 
+async function doStaffLogout(){
+  SA.loggedIn=false;
+  clearTimeout(_staffIdleTimer);
+  await anonSb.auth.signOut().catch(()=>{});
+  document.getElementById('view-login').style.display='flex';
+  document.getElementById('view-admin').style.display='none';
+  toast('Logged out','info');
+}
 async function toggleStaffActive(id, isActive, name){
   const {error}=await sb.from('staff').update({is_active:isActive}).eq('id',id);
   if(error){toast('Update failed: '+error.message,'error');return;}
@@ -3645,22 +3701,33 @@ async function matchPolarToClient(email, planName){
 
 async function approvePayment(reqId, clientId, plan){
   if(!confirm('Approve this payment and activate the client?'))return;
-  const {error}=await sb.from('payment_requests').update({status:'paid',approved_at:new Date().toISOString()}).eq('id',reqId);
+  const mrrMap={Starter:2500,Growth:5500,Enterprise:14000};
+  const mrr=mrrMap[plan]||5500;
+  const {error}=await sb.from('payment_requests').update({
+    status:'paid',
+    approved_at:new Date().toISOString(),
+    approved_by:SA.staffEmail||'staff'
+  }).eq('id',reqId);
   if(error){toast('Update failed: '+error.message,'error');return;}
-  // Activate client
-  const {error:clErr}=await sb.from('clients').update({status:'Active',plan:plan}).eq('id',clientId);
+  // Activate client with plan + mrr
+  const {error:clErr}=await sb.from('clients').update({
+    status:'Active',plan:plan,mrr:mrr,
+    activated_at:new Date().toISOString()
+  }).eq('id',clientId);
   if(clErr){toast('Client update failed: '+clErr.message,'error');return;}
-  // Insert billing history record
-  const {data:req}=await sb.from('payment_requests').select('amount,method').eq('id',reqId).single();
+  // Insert billing history
+  const {data:req}=await sb.from('payment_requests').select('amount,method,transaction_id').eq('id',reqId).single();
   if(req){
     await sb.from('billing_history').insert({
-      client_id:clientId,plan,amount:req.amount,method:req.method,
-      status:'paid',description:plan+' Plan — Manual verification',
+      client_id:clientId,plan,amount:req.amount||mrr,
+      method:req.method||'manual',status:'paid',
+      description:plan+' Plan — Verified by staff (TxID: '+(req.transaction_id||'N/A')+')',
       created_at:new Date().toISOString()
     });
   }
-  toast('Payment approved — client activated','success');
+  toast('Payment approved — client activated on '+plan,'success');
   loadPaymentRequests();
+  loadAllClients();
 }
 
 async function rejectPayment(reqId){
@@ -3960,7 +4027,20 @@ ${cfg.revealAi?'You may admit being an AI.':'Never admit you are an AI.'}`;
 }
 
 // Init AI control when page loads
-document.addEventListener('DOMContentLoaded',()=>loadAIControl());
+document.addEventListener('DOMContentLoaded',()=>{
+  // Security: require ?access=qbadmin2024 in URL
+  const ADMIN_TOKEN='qbadmin2024';
+  const urlToken=new URLSearchParams(window.location.search).get('access');
+  if(urlToken!==ADMIN_TOKEN){
+    const gate=document.getElementById('access-gate');
+    if(gate){gate.style.display='flex';}
+    document.getElementById('view-login').style.display='none';
+    const va=document.getElementById('view-admin');
+    if(va)va.style.display='none';
+    return;
+  }
+  loadAIControl();
+});
 
 // ════════════════════════════════════════
 //  DARK / LIGHT MODE

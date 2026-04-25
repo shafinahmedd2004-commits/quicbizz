@@ -174,6 +174,7 @@ tr:hover td{background:#fafbff}
 
 /* METRICS */
 .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:600px){.metric-grid{grid-template-columns:1fr 1fr}}
 .metric{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
 .metric-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin-bottom:7px}
 .metric-val{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
@@ -312,14 +313,14 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
 .auth-footer a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none}
 
 /* CLIENT ADMIN */
-.ca-layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 60px)}
-.ca-sidebar{background:var(--white);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-.ca-nav-sect{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.1em;padding:10px 10px 4px}
-.ca-nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s}
-.ca-nav-item:hover{background:var(--surface);color:var(--text)}
-.ca-nav-item.active{background:var(--accent-l);color:var(--accent)}
+.ca-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 60px)}
+.ca-sidebar{background:var(--white);border-right:1px solid var(--border);padding:12px 10px;display:flex;flex-direction:column;gap:1px;overflow-y:auto;position:sticky;top:60px;height:calc(100vh - 60px)}
+.ca-nav-sect{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.1em;padding:14px 12px 4px;text-transform:uppercase}
+.ca-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;user-select:none}
+.ca-nav-item:hover{background:var(--surface);color:var(--text);transform:translateX(2px)}
+.ca-nav-item.active{background:var(--accent-l);color:var(--accent);font-weight:700}
 .ca-nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
-.ca-main{overflow-y:auto;padding:28px 32px}
+.ca-main{overflow-y:auto;padding:28px 32px;background:var(--bg)}
 .ca-page{display:none}.ca-page.active{display:block}
 .ca-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
 .ca-title{font-size:21px;font-weight:800;letter-spacing:-.5px}
@@ -389,11 +390,11 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
   .hero{padding:100px 20px 60px}.hero-inner{grid-template-columns:1fr}.hero-visual{display:none}
   .svc-grid,.pricing-grid,.feat-grid,.form-grid,.form-grid-3{grid-template-columns:1fr}
   .steps-row,.metric-grid,.two-col{grid-template-columns:1fr 1fr}
-  .ca-layout{grid-template-columns:1fr;padding-top:52px;min-height:calc(100vh - 52px)}
-  .ca-sidebar{display:none;position:fixed;top:52px;left:0;bottom:0;z-index:500;overflow-y:auto;padding-bottom:80px;width:270px;box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  .ca-layout{grid-template-columns:1fr;padding-top:60px;min-height:calc(100vh - 60px)}
+  .ca-sidebar{display:none;position:fixed;top:60px;left:0;bottom:0;z-index:500;overflow-y:auto;padding-bottom:100px;width:280px;box-shadow:4px 0 32px rgba(0,0,0,.2)}
   .ca-sidebar.mob-open{display:flex!important;flex-direction:column}
   .ca-mob-header{display:flex!important}
-  .ca-main{padding:14px;width:100%;overflow-x:hidden}
+  .ca-main{padding:16px 14px;width:100%;overflow-x:hidden}
   .ca-header{flex-direction:column;gap:10px;align-items:flex-start}
   .ca-header .flex{flex-wrap:wrap;gap:6px}
   .chatlink-page{padding:0}
@@ -1261,6 +1262,35 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
           <button class="btn btn-secondary btn-sm mt-8" onclick="addInstructionSet()">+ Add instruction set</button>
         </div>
         <div class="ai-section">
+          <div class="ai-section-title">Chat Appearance</div>
+          <div class="form-grid" style="margin-bottom:12px">
+            <div class="form-row">
+              <label class="label">Chat Theme</label>
+              <select class="input" id="ai-chat-theme" onchange="previewChatTheme()">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="custom">Custom color</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="label">Header / Accent Color</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" id="ai-chat-color" value="#2563ff" oninput="previewChatTheme()" style="width:44px;height:38px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px">
+                <input class="input" id="ai-chat-color-hex" value="#2563ff" placeholder="#2563ff" style="flex:1;font-size:13px" oninput="syncColorHex()">
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div onclick="setQuickColor('#2563ff')" style="width:28px;height:28px;border-radius:50%;background:#2563ff;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Blue"></div>
+            <div onclick="setQuickColor('#059669')" style="width:28px;height:28px;border-radius:50%;background:#059669;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Green"></div>
+            <div onclick="setQuickColor('#dc2626')" style="width:28px;height:28px;border-radius:50%;background:#dc2626;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Red"></div>
+            <div onclick="setQuickColor('#7c3aed')" style="width:28px;height:28px;border-radius:50%;background:#7c3aed;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Purple"></div>
+            <div onclick="setQuickColor('#ea6c00')" style="width:28px;height:28px;border-radius:50%;background:#ea6c00;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Orange"></div>
+            <div onclick="setQuickColor('#0891b2')" style="width:28px;height:28px;border-radius:50%;background:#0891b2;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Cyan"></div>
+            <div onclick="setQuickColor('#111827')" style="width:28px;height:28px;border-radius:50%;background:#111827;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #dde2ee" title="Dark"></div>
+          </div>
+        </div>
+        <div class="ai-section">
           <div class="ai-section-title">🚫 Blocked topics</div>
           <div class="form-row"><label class="label">Topics the AI should refuse (comma-separated)</label><textarea class="input" id="ai-blocked" rows="2" placeholder="competitor prices, personal questions, politics"></textarea></div>
         </div>
@@ -1636,8 +1666,8 @@ async function doSignup(){
     }
     // 5. Go to dashboard immediately — ai_configs insert in background
     gv('client-admin');
-    checkPaywall();
-    toast('Account created! Welcome to QuicBizz 🎉','success');
+    toast('Account created! Welcome to QuicBizz!','success');
+    setTimeout(checkPaywall, 1500);
     sb.from('ai_configs').insert({
       client_id:newClient.id,
       ai_name:b+' Customer Service',
@@ -1652,10 +1682,24 @@ async function doSignup(){
 // Guard flag — prevents onAuthStateChange from double-firing during manual login
 let _loginInProgress=false;
 
+// ── IDLE SESSION TIMEOUT (30 min) ──
+let _idleTimer=null;
+function resetIdleTimer(){
+  clearTimeout(_idleTimer);
+  _idleTimer=setTimeout(()=>{
+    if(S.clientId){
+      toast('Session expired due to inactivity. Please log in again.','error');
+      doLogout();
+    }
+  },30*60*1000);
+}
+['click','keydown','touchstart','scroll'].forEach(ev=>document.addEventListener(ev,resetIdleTimer,{passive:true}));
+
 async function doLogin(){
   const email=V('li-email'),pass=V('li-pass');
   if(!email||!pass){toast('Enter email and password','error');return;}
   if(_loginInProgress)return; // prevent double click
+  if(!checkLoginRateLimit())return;
   _loginInProgress=true;
   const btn=document.querySelector('#view-login .btn-primary');
   if(btn){btn.disabled=true;btn.textContent='Logging in...';}
@@ -1672,16 +1716,18 @@ async function doLogin(){
       return;
     }
     if(!data?.user){toast('Login failed — no user returned. Please try again.','error');return;}
+    // Show dashboard immediately for speed — load data in parallel
+    gv('client-admin');
+    toast('Welcome back!','success');
     await loadClientData(data.user);
     if(!S.clientId){
-      // loadClientData may have failed silently — retry once with a short delay
       await new Promise(r=>setTimeout(r,600));
       await loadClientData(data.user);
     }
     if(!S.clientId){toast('Account data not found. Please contact support.','error');return;}
     updateNavProfile();
-    toast('Welcome back! 👋','success');
-    gv('client-admin');
+    checkPaywall();
+    resetIdleTimer();
   }catch(err){
     toast(err.message||'Login failed — please try again.','error');
   }finally{
@@ -1693,7 +1739,7 @@ function checkPaywall(){
   const pw=document.getElementById('ca-paywall');if(!pw)return;
   const trialDays=(S.payConfig&&S.payConfig.trial_days)||3;
   const graceDays=(S.payConfig&&S.payConfig.grace_days)||3;
-  const autoSuspend=!S.payConfig||S.payConfig.auto_suspend!==false;
+  const autoSuspend=S.payConfig&&S.payConfig.auto_suspend!==false;
   const st=(S.status||'').toLowerCase();
   const isPaid=st==='active'||st==='paid';
   const isSuspended=st==='suspended';
@@ -1738,7 +1784,7 @@ function _resetClientState(){
   S.aiConfig={name:'QuicBizz Customer Service',greeting:'',personality:'friendly',
     language:'both',length:'medium',instructions:'',bizinfo:'',blocked:'',
     upsell:true,autoconfirm:true,phone:false,summary:true,escalate:true,
-    quickReplies:[],faqs:[],instructionSets:[]};
+    quickReplies:[],faqs:[],instructionSets:[],chatTheme:'light',chatColor:'#2563ff'};
   const acctName=document.getElementById('sidebar-acct-name');
   if(acctName)acctName.textContent='My Account';
   const acctEmail=document.getElementById('sidebar-acct-email');
@@ -1844,6 +1890,8 @@ async function loadClientData(authUser){
       instructions:aiCfg.instructions||'',
       bizinfo:aiCfg.context||'',
       blocked:aiCfg.blocked||'',
+      chatTheme:aiCfg.chat_theme||'light',
+      chatColor:aiCfg.chat_color||'#2563ff',
       upsell:aiCfg.upsell!==false,
       autoconfirm:aiCfg.autoconfirm!==false,
       phone:aiCfg.collect_phone||false,
@@ -1855,6 +1903,15 @@ async function loadClientData(authUser){
     };
   }
   await Promise.all([loadProducts(), loadOrders(), loadCustomers(), loadPaymentConfig()]);
+  // Populate AI theme UI fields after load
+  setTimeout(()=>{
+    const th=document.getElementById('ai-chat-theme');
+    const cl=document.getElementById('ai-chat-color');
+    const hx=document.getElementById('ai-chat-color-hex');
+    if(th)th.value=S.aiConfig.chatTheme||'light';
+    if(cl)cl.value=S.aiConfig.chatColor||'#2563ff';
+    if(hx)hx.value=S.aiConfig.chatColor||'#2563ff';
+  },200);
   S.sfKey = client.sf_api_key || '';
   S.sfSecret = client.sf_secret_key || '';
   S.plan = client.plan || 'trial';
@@ -2332,10 +2389,50 @@ function addQR(){const i=document.getElementById('qr-input');if(!i?.value.trim()
 function renderQRChips(){const e=document.getElementById('qr-chips');if(!e)return;e.innerHTML=S.aiConfig.quickReplies.map((qr,i)=>`<div class="qr-chip">${qr}<button onclick="S.aiConfig.quickReplies.splice(${i},1);renderQRChips()">×</button></div>`).join('');}
 function addFAQ(){const q=document.getElementById('faq-q-in'),a=document.getElementById('faq-a-in');if(!q?.value.trim()||!a?.value.trim()){toast('Fill Q and A','error');return;}S.aiConfig.faqs.push({q:q.value.trim(),a:a.value.trim()});q.value='';a.value='';renderFAQPairs();}
 function renderFAQPairs(){const e=document.getElementById('faq-pairs');if(!e)return;e.innerHTML=S.aiConfig.faqs.map((f,i)=>`<div class="faq-pair"><div style="flex:1"><div style="font-size:13px;font-weight:700;margin-bottom:2px">Q: ${f.q}</div><div style="font-size:12px;color:var(--sub)">A: ${f.a}</div></div><button class="btn btn-xs btn-danger" onclick="S.aiConfig.faqs.splice(${i},1);renderFAQPairs()">Remove</button></div>`).join('');}
+// ── SECURITY: sanitize HTML to prevent XSS ──
+function sanitize(str){
+  if(!str)return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Rate limiter for login attempts
+const _loginAttempts={count:0,ts:0};
+function checkLoginRateLimit(){
+  const now=Date.now();
+  if(now-_loginAttempts.ts>60000){_loginAttempts.count=0;_loginAttempts.ts=now;}
+  _loginAttempts.count++;
+  if(_loginAttempts.count>5){
+    const wait=Math.ceil((60000-(now-_loginAttempts.ts))/1000);
+    toast('Too many attempts. Wait '+wait+'s before trying again.','error');
+    return false;
+  }
+  return true;
+}
+function setQuickColor(hex){
+  const cp=document.getElementById('ai-chat-color');
+  const hx=document.getElementById('ai-chat-color-hex');
+  if(cp)cp.value=hex;
+  if(hx)hx.value=hex;
+  previewChatTheme();
+}
+function syncColorHex(){
+  const hx=document.getElementById('ai-chat-color-hex')?.value||'';
+  if(/^#[0-9a-f]{6}$/i.test(hx)){
+    const cp=document.getElementById('ai-chat-color');
+    if(cp)cp.value=hx;
+    previewChatTheme();
+  }
+}
+function previewChatTheme(){
+  const theme=document.getElementById('ai-chat-theme')?.value||'light';
+  const color=document.getElementById('ai-chat-color')?.value||'#2563ff';
+  S.aiConfig.chatTheme=theme;
+  S.aiConfig.chatColor=color;
+  initCL();
+}
 async function saveAI(){
   const gv2=id=>{const e=document.getElementById(id);return e?e.value:''};
   const gc=id=>{const e=document.getElementById(id);return e?e.checked:false};
-  Object.assign(S.aiConfig,{name:gv2('ai-name')||'QuicBizz Customer Service',greeting:gv2('ai-greeting'),language:gv2('ai-language'),length:gv2('ai-length'),instructions:gv2('ai-instructions'),bizinfo:gv2('ai-bizinfo'),blocked:gv2('ai-blocked'),autoconfirm:gc('tog-autoconfirm'),upsell:gc('tog-upsell'),phone:gc('tog-phone'),summary:gc('tog-summary'),escalate:gc('tog-escalate')});
+  Object.assign(S.aiConfig,{name:gv2('ai-name')||'QuicBizz Customer Service',greeting:gv2('ai-greeting'),language:gv2('ai-language'),length:gv2('ai-length'),instructions:gv2('ai-instructions'),bizinfo:gv2('ai-bizinfo'),blocked:gv2('ai-blocked'),autoconfirm:gc('tog-autoconfirm'),upsell:gc('tog-upsell'),phone:gc('tog-phone'),summary:gc('tog-summary'),escalate:gc('tog-escalate'),chatTheme:gv2('ai-chat-theme')||'light',chatColor:gv2('ai-chat-color')||'#2563ff'});
   if(!S.clientId){
     // Try to recover session before giving up
     const {data:sess}=await sb.auth.getSession();
@@ -2353,6 +2450,8 @@ async function saveAI(){
     collect_phone:S.aiConfig.phone,send_summary:S.aiConfig.summary,escalate:S.aiConfig.escalate,
     quick_replies:S.aiConfig.quickReplies,faqs:S.aiConfig.faqs,
     instruction_sets:S.aiConfig.instructionSets||[],
+    chat_theme:S.aiConfig.chatTheme||'light',
+    chat_color:S.aiConfig.chatColor||'#2563ff',
     updated_at:new Date().toISOString()
   };
   // Use upsert with onConflict:'client_id' — atomically inserts or updates,
@@ -2627,7 +2726,27 @@ function addAllBulk(){
 function initCL(){
   const bi=S.biz,ai=S.aiConfig;
   const hdr=document.getElementById('cl-chat-header');
-  if(hdr)hdr.style.background='var(--accent)';
+  const chatColor=ai.chatColor||'#2563ff';
+  const chatTheme=ai.chatTheme||'light';
+  if(hdr){
+    hdr.style.background=chatColor;
+    hdr.style.color='#fff';
+  }
+  // Apply theme to chat card
+  const card=document.querySelector('#view-client-admin .chatlink-page-card');
+  if(card){
+    if(chatTheme==='dark'){
+      card.style.background='#1a1a2e';
+      const msgs=document.getElementById('cl-msgs');
+      if(msgs)msgs.style.background='#16213e';
+    } else if(chatTheme==='custom'){
+      card.style.background=chatColor+'11';
+    } else {
+      card.style.background='';
+      const msgs=document.getElementById('cl-msgs');
+      if(msgs)msgs.style.background='';
+    }
+  }
   const nm=document.getElementById('cl-biz-name-display');if(nm)nm.textContent=bi.name||'Customer Service';
   const sl=document.getElementById('cl-biz-slogan-display');
   if(sl){if(bi.slogan){sl.textContent=bi.slogan;sl.style.display='block';}else{sl.style.display='none';}}
@@ -3223,14 +3342,7 @@ function renderProducts(){
 // ================================================================
 function generateInvoice(orderId){
   const o=S.orders.find(x=>String(x.id)===String(orderId));if(!o)return;
-  const bizName=S.biz&&S.biz.name||'My Business';
-  const bizAddr=S.biz&&S.biz.address||'';
-  const bizPhone=S.biz&&S.biz.phone||'';
-  const logoHtml=S.bizLogo?`<img src="${S.bizLogo}" style="height:60px;object-fit:contain;border-radius:8px">`:`<div style="font-size:36px">${(S.biz&&S.biz.emoji)||'🏪'}</div>`;
-  const now=new Date().toLocaleDateString('en-BD',{day:'2-digit',month:'short',year:'numeric'});
-  // Parse items — skip questions, greetings, and non-product lines
-  // Keep: product names, lines with ×/x qty, lines with price context
-  // Move to details: name/phone/address/size/color info
+  // Show editable invoice modal first
   const skipWords=/^(hi|hello|hey|ok|okay|yes|no|sure|thanks|thank you|confirmed|great|perfect|noted|done|আস্সালামু|হ্যাঁ|না|ধন্যবাদ|জ্বি|ঠিক আছে)/i;
   const infoLabel=/^(name|phone|mobile|address|email|city|area|district|size|color|colour|delivery|zip|postal|নাম|ফোন|ঠিকানা|সাইজ|রঙ)/i;
   const rawSegs=(o.items||'').split(/[;]/);
@@ -3241,82 +3353,164 @@ function generateInvoice(orderId){
     if(infoLabel.test(t)){infoLines.push(t);}
     else{productLines.push(t);}
   });
-  // Build product rows
-  let runningTotal=0;
-  const itemRows=productLines.map(item=>{
-    const t=item.trim();if(!t)return null;
+  // Build editable items
+  let itemsHtml='';
+  productLines.forEach((item,i)=>{
+    const t=item.trim();if(!t)return;
     const qtyMatch=t.match(/^(.+?)\s*[×x]\s*(\d+)$/i);
-    let name=t, qty=1;
+    let name=t,qty=1;
     if(qtyMatch){name=qtyMatch[1].trim();qty=parseInt(qtyMatch[2])||1;}
-    // Find matching product for price
-    const prod=S.products.find(p=>{
-      const pn=p.name.toLowerCase();const nn=name.toLowerCase();
-      return pn===nn||pn.includes(nn)||nn.includes(pn);
-    });
+    const prod=S.products.find(p=>{const pn=p.name.toLowerCase(),nn=name.toLowerCase();return pn===nn||pn.includes(nn)||nn.includes(pn);});
     const unit=prod?prod.price:0;
-    const tot=unit*qty;
-    if(tot>0)runningTotal+=tot;
-    return '<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">'+name+'</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">'+qty+'</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">'+(unit?'৳'+unit:'—')+'</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:700">'+(tot?'৳'+tot:'—')+'</td></tr>';
-  }).filter(Boolean).join('')||'<tr><td colspan="4" style="padding:16px;color:#999;text-align:center">See order details below</td></tr>';
-  // Use stored total if available, else calculated
-  const displayTotal=o.total||runningTotal;
-  // Build order details block
-  const infoBlock=infoLines.length?'<div style="margin-top:16px;background:#f9fafb;border-radius:8px;padding:14px 16px"><div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Customer & Order Details</div>'+infoLines.map(l=>'<div style="font-size:13px;color:#444;padding:3px 0">'+l+'</div>').join('')+'</div>':'';
+    itemsHtml+=`<div class="inv-item-row" style="display:grid;grid-template-columns:1fr 70px 90px 36px;gap:6px;margin-bottom:6px" data-idx="${i}">
+      <input class="input inv-item-name" value="${name}" placeholder="Item name" style="font-size:13px;padding:7px 10px">
+      <input class="input inv-item-qty" type="number" value="${qty}" min="1" style="font-size:13px;padding:7px 8px;text-align:center">
+      <input class="input inv-item-price" type="number" value="${unit}" min="0" placeholder="Price" style="font-size:13px;padding:7px 8px;text-align:right">
+      <button onclick="this.closest('.inv-item-row').remove();calcInvTotal()" style="background:var(--red-l);border:none;border-radius:7px;cursor:pointer;color:var(--red);font-weight:700;font-size:14px">×</button>
+    </div>`;
+  });
+  const modalBody=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="form-row"><label class="label">Customer Name</label><input class="input" id="inv-customer" value="${o.customer||''}"></div>
+      <div class="form-row"><label class="label">Phone</label><input class="input" id="inv-phone" value="${o.phone||''}"></div>
+      <div class="form-row" style="grid-column:1/-1"><label class="label">Address</label><input class="input" id="inv-address" value="${o.address||infoLines.filter(l=>l.toLowerCase().startsWith('address')).map(l=>l.replace(/^address[:\s]*/i,'')).join(', ')||''}"></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.05em;margin-bottom:8px">ITEMS</div>
+    <div style="display:grid;grid-template-columns:1fr 70px 90px 36px;gap:6px;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:700;color:var(--muted)">ITEM</span>
+      <span style="font-size:11px;font-weight:700;color:var(--muted);text-align:center">QTY</span>
+      <span style="font-size:11px;font-weight:700;color:var(--muted);text-align:right">PRICE (৳)</span>
+      <span></span>
+    </div>
+    <div id="inv-items">${itemsHtml}</div>
+    <button class="btn btn-ghost btn-xs" style="margin-top:4px;margin-bottom:14px" onclick="
+      const r=document.createElement('div');r.className='inv-item-row';
+      r.style.cssText='display:grid;grid-template-columns:1fr 70px 90px 36px;gap:6px;margin-bottom:6px';
+      r.innerHTML='<input class=\'input inv-item-name\' placeholder=\'Item name\' style=\'font-size:13px;padding:7px 10px\'><input class=\'input inv-item-qty\' type=\'number\' value=\'1\' min=\'1\' style=\'font-size:13px;padding:7px 8px;text-align:center\'><input class=\'input inv-item-price\' type=\'number\' value=\'0\' min=\'0\' style=\'font-size:13px;padding:7px 8px;text-align:right\'><button onclick=\'this.closest(\".inv-item-row\").remove();calcInvTotal()\' style=\'background:var(--red-l);border:none;border-radius:7px;cursor:pointer;color:var(--red);font-weight:700;font-size:14px\'>×</button>';
+      document.getElementById('inv-items').appendChild(r);
+      r.querySelectorAll('input').forEach(i=>i.addEventListener('input',calcInvTotal));
+    ">+ Add item</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="form-row"><label class="label">Delivery Charge (৳)</label><input class="input" id="inv-delivery" type="number" value="${o.delivery_charge||0}" min="0" oninput="calcInvTotal()"></div>
+      <div class="form-row"><label class="label">Discount (৳)</label><input class="input" id="inv-discount" type="number" value="${o.discount||0}" min="0" oninput="calcInvTotal()"></div>
+      <div class="form-row"><label class="label">Notes</label><input class="input" id="inv-notes" value="${o.notes||''}" placeholder="Optional note"></div>
+    </div>
+    <div style="background:var(--surface);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:var(--sub)">TOTAL</span>
+      <span style="font-size:22px;font-weight:900;color:var(--accent)" id="inv-total-display">৳${o.total||0}</span>
+    </div>`;
+  om('Invoice #'+o.id, modalBody,
+    [{label:'Print / Save PDF',primary:true,fn:()=>printInvoice(o.id)},
+     {label:'Share WhatsApp',primary:false,fn:()=>{
+       const tot=document.getElementById('inv-total-display')?.textContent||'';
+       const cust=document.getElementById('inv-customer')?.value||o.customer;
+       const msg=encodeURIComponent('Invoice #'+o.id+' for '+cust+' — Total: '+tot+'\nThank you from '+(S.biz&&S.biz.name||'us')+'!');
+       window.open('https://wa.me/?text='+msg,'_blank');
+     }},
+     {label:'Cancel',primary:false,fn:cm}],false);
+  // Attach live total calc
+  setTimeout(()=>{
+    document.querySelectorAll('.inv-item-qty,.inv-item-price').forEach(el=>el.addEventListener('input',calcInvTotal));
+    calcInvTotal();
+  },80);
+}
+
+function calcInvTotal(){
+  let sub=0;
+  document.querySelectorAll('.inv-item-row').forEach(row=>{
+    const qty=parseFloat(row.querySelector('.inv-item-qty')?.value)||0;
+    const price=parseFloat(row.querySelector('.inv-item-price')?.value)||0;
+    sub+=qty*price;
+  });
+  const delivery=parseFloat(document.getElementById('inv-delivery')?.value)||0;
+  const discount=parseFloat(document.getElementById('inv-discount')?.value)||0;
+  const total=Math.max(0,sub+delivery-discount);
+  const el=document.getElementById('inv-total-display');
+  if(el)el.textContent='৳'+total;
+}
+
+function printInvoice(orderId){
+  const o=S.orders.find(x=>String(x.id)===String(orderId));if(!o)return;
+  const bizName=S.biz&&S.biz.name||'My Business';
+  const bizAddr=S.biz&&S.biz.address||'';
+  const bizPhone=S.biz&&S.biz.phone||'';
+  const logoHtml=S.bizLogo?`<img src="${S.bizLogo}" style="height:60px;object-fit:contain;border-radius:8px">`:`<div style="font-size:36px">${(S.biz&&S.biz.emoji)||'🏪'}</div>`;
+  const now=new Date().toLocaleDateString('en-BD',{day:'2-digit',month:'short',year:'numeric'});
+  const customer=document.getElementById('inv-customer')?.value||o.customer;
+  const phone=document.getElementById('inv-phone')?.value||o.phone||'';
+  const address=document.getElementById('inv-address')?.value||o.address||'';
+  const notes=document.getElementById('inv-notes')?.value||o.notes||'';
+  const delivery=parseFloat(document.getElementById('inv-delivery')?.value)||0;
+  const discount=parseFloat(document.getElementById('inv-discount')?.value)||0;
+  const totalText=document.getElementById('inv-total-display')?.textContent||'৳'+o.total;
+  let itemRows='';
+  let sub=0;
+  document.querySelectorAll('.inv-item-row').forEach(row=>{
+    const name=row.querySelector('.inv-item-name')?.value||'';
+    const qty=parseFloat(row.querySelector('.inv-item-qty')?.value)||1;
+    const price=parseFloat(row.querySelector('.inv-item-price')?.value)||0;
+    const tot=qty*price;sub+=tot;
+    if(name)itemRows+=`<tr><td>${name}</td><td style="text-align:center">${qty}</td><td style="text-align:right">৳${price}</td><td style="text-align:right;font-weight:700">৳${tot}</td></tr>`;
+  });
   const invoiceHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice #${o.id}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,sans-serif;max-width:620px;margin:0 auto;padding:32px;color:#111;font-size:14px}
+    body{font-family:'Segoe UI',Arial,sans-serif;max-width:640px;margin:0 auto;padding:36px;color:#111;font-size:14px}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #eef2ff}
+    .biz-name{font-size:22px;font-weight:800;margin-top:8px;color:#0d1526}
+    .biz-sub{font-size:12px;color:#666;margin-top:3px}
+    .inv-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.08em}
+    .inv-num{font-size:28px;font-weight:900;color:#2563ff}
+    .bill-box{background:#f5f7fb;border-radius:12px;padding:16px 20px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start}
     table{width:100%;border-collapse:collapse;margin-top:8px}
-    th{background:#f5f7fb;padding:9px 12px;font-size:12px;text-align:left;border-bottom:2px solid #dde2ee}
-    td{padding:9px 12px;border-bottom:1px solid #eee;font-size:13px}
-    @media print{
-      body{padding:20px;max-width:100%}
-      button,.no-print{display:none!important}
-      @page{margin:1cm;size:A4}
-    }
+    th{background:#f5f7fb;padding:10px 14px;font-size:11px;font-weight:700;text-align:left;border-bottom:2px solid #dde2ee;color:#8b93a8;text-transform:uppercase;letter-spacing:.04em}
+    td{padding:10px 14px;border-bottom:1px solid #f0f2f8;font-size:13px}
+    .totals{margin-top:16px;display:flex;justify-content:flex-end}
+    .totals-box{min-width:220px;background:#f5f7fb;border-radius:12px;padding:14px 16px}
+    .tot-row{display:flex;justify-content:space-between;font-size:13px;color:#4b5675;padding:4px 0}
+    .tot-final{display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#2563ff;padding-top:10px;margin-top:8px;border-top:2px solid #dde2ee}
+    .pay-box{margin-top:24px;background:#eef2ff;border-radius:12px;padding:16px 20px}
+    .footer{margin-top:32px;text-align:center;font-size:11px;color:#aaa;border-top:1px solid #eef2ff;padding-top:16px}
+    @media print{body{padding:20px;max-width:100%}button,.no-print{display:none!important}@page{margin:1cm;size:A4}}
   </style>
-  <script>window.onload=function(){document.title='Invoice #'+document.querySelector('.inv-num')?.textContent||'Invoice';window.print();}<\/script>
-  </head>
-  <body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">
-    <div>${logoHtml}<div style="font-size:20px;font-weight:800;margin-top:8px">${bizName}</div>${bizAddr?`<div style="font-size:12px;color:#666;margin-top:2px">${bizAddr}</div>`:''} ${bizPhone?`<div style="font-size:12px;color:#666">${bizPhone}</div>`:''}</div>
-    <div style="text-align:right"><div style="font-size:11px;color:#999;text-transform:uppercase">Invoice</div><div style="font-size:26px;font-weight:900;color:#2563ff">#${o.id}</div><div style="font-size:12px;color:#666;margin-top:4px">Date: ${now}</div></div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </head><body>
+  <div class="header">
+    <div>${logoHtml}<div class="biz-name">${bizName}</div>${bizAddr?'<div class="biz-sub">'+bizAddr+'</div>':''}${bizPhone?'<div class="biz-sub">'+bizPhone+'</div>':''}</div>
+    <div style="text-align:right"><div class="inv-label">Invoice</div><div class="inv-num">#${o.id}</div><div style="font-size:12px;color:#666;margin-top:6px">${now}</div></div>
   </div>
-  <div style="background:#f5f7fb;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;justify-content:space-between">
-    <div><div style="font-size:11px;color:#999;font-weight:700;text-transform:uppercase">Bill To</div><div style="font-size:15px;font-weight:700;margin-top:4px">${o.customer}</div><div style="font-size:12px;color:#666">${o.channel} order</div></div>
-    <div style="text-align:right"><div style="font-size:11px;color:#999;font-weight:700;text-transform:uppercase">Status</div><div style="font-size:14px;font-weight:700;margin-top:4px;color:${o.status==='Delivered'?'#059669':'#ea6c00'}">${o.status}</div></div>
+  <div class="bill-box">
+    <div>
+      <div class="inv-label">Bill To</div>
+      <div style="font-size:16px;font-weight:700;margin-top:6px">${customer}</div>
+      ${phone?'<div style="font-size:12px;color:#666;margin-top:2px">'+phone+'</div>':''}
+      ${address?'<div style="font-size:12px;color:#666;margin-top:2px">'+address+'</div>':''}
+    </div>
+    <div style="text-align:right">
+      <div class="inv-label">Status</div>
+      <div style="font-size:14px;font-weight:700;margin-top:6px;color:${o.status==='Delivered'?'#059669':'#ea6c00'}">${o.status}</div>
+      <div style="font-size:12px;color:#666;margin-top:2px">${o.channel||''} order</div>
+    </div>
   </div>
-  <table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${itemRows}</tbody></table>
-  <div style="display:flex;justify-content:flex-end;margin-top:16px"><div style="min-width:200px"><div style="display:flex;justify-content:space-between;padding:10px 12px;background:#f5f7fb;border-radius:8px"><span style="font-weight:700">Total Amount</span><span style="font-size:18px;font-weight:900;color:#2563ff">৳${displayTotal||o.total||'—'}</span></div></div></div>
-  <div style="margin-top:28px;background:#eef2ff;border-radius:10px;padding:16px 18px">
+  <table>
+    <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>${itemRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:20px">No items</td></tr>'}</tbody>
+  </table>
+  <div class="totals"><div class="totals-box">
+    <div class="tot-row"><span>Subtotal</span><span>৳${sub}</span></div>
+    ${delivery?'<div class="tot-row"><span>Delivery</span><span>৳'+delivery+'</span></div>':''}
+    ${discount?'<div class="tot-row"><span>Discount</span><span style="color:#059669">-৳'+discount+'</span></div>':''}
+    <div class="tot-final"><span>Total</span><span>${totalText}</span></div>
+  </div></div>
+  <div class="pay-box">
     <div style="font-size:12px;font-weight:700;color:#2563ff;margin-bottom:8px">Payment Information</div>
     <div style="font-size:13px;color:#4b5675">bKash: <b>${(S.biz&&S.biz.bkash)||'Contact us'}</b> &nbsp;|&nbsp; Nagad: <b>${(S.biz&&S.biz.nagad)||'Contact us'}</b></div>
-    <div style="font-size:11px;color:#8b93a8;margin-top:4px">Please send payment and share the transaction ID.</div>
   </div>
-  ${infoBlock}
-  ${o.notes?'<div style="margin-top:16px;font-size:12px;color:#666;background:#fffbeb;border-radius:8px;padding:10px 14px"><b>Notes:</b> '+o.notes+'</div>':''}
-  <div style="margin-top:32px;text-align:center;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:16px">Thank you for your business! · Powered by QuicBizz</div>
+  ${notes?'<div style="margin-top:16px;background:#fffbeb;border-radius:10px;padding:12px 16px;font-size:13px;color:#666"><b>Notes:</b> '+notes+'</div>':''}
+  <div class="footer">Thank you for your business! · Powered by QuicBizz</div>
   </body></html>`;
-  const blob=new Blob([invoiceHTML],{type:'text/html'});
-  const invoiceUrl=URL.createObjectURL(blob);
-  const waMsg=encodeURIComponent(`Invoice #${o.id} for ${o.customer} — Total: ৳${o.total}\nThank you from ${bizName}!`);
-  // Open invoice in new tab — onload auto-triggers print dialog for PDF save
-  const win=window.open('','_blank','width=700,height=900');
-  if(win){
-    win.document.write(invoiceHTML);
-    win.document.close();
-    win.focus();
-  }
-  // Also show modal with WhatsApp share
-  om('🧾 Invoice #'+o.id,
-    '<div style="font-size:13px;color:var(--sub);margin-bottom:14px">Invoice for <b>'+o.customer+'</b> — Total: <b>৳'+(displayTotal||o.total)+'</b></div>'+
-    '<div style="display:flex;flex-direction:column;gap:8px">'+
-    '<button class="btn btn-primary w-full" onclick="generateInvoice('+JSON.stringify(o.id)+');cm()">📄 Download / Print PDF</button>'+
-    '<a class="btn btn-success w-full" href="https://wa.me/?text='+waMsg+'" target="_blank" style="text-decoration:none;justify-content:center">💬 Share via WhatsApp</a>'+
-    '</div>'+
-    "<div style='margin-top:14px;font-size:12px;color:var(--muted)'>💡 The invoice opens in a new tab — use your browser's Print → Save as PDF.</div>",
-    [{label:'Close',primary:false,fn:cm}],false
-  );
+  const win=window.open('','_blank','width=720,height=900');
+  if(win){win.document.write(invoiceHTML);win.document.close();win.focus();}
 }
 
 // ================================================================
@@ -4107,7 +4301,7 @@ async function sfReq(path, method, body) {
   var w = document.getElementById('sf-key-warning');
   if (w) w.style.display = 'none';
 
-  var res = await fetch('https://quicbizz.vercel.app/api/steadfast', {
+  var res = await fetch('/.netlify/functions/steadfast', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({path:path, method:method, body:body||undefined, api_key:S.sfKey, secret_key:S.sfSecret})
