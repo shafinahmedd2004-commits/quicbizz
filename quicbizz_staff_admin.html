@@ -4029,7 +4029,7 @@ ${cfg.revealAi?'You may admit being an AI.':'Never admit you are an AI.'}`;
 // Init AI control when page loads
 document.addEventListener('DOMContentLoaded',()=>{
   // Security: require ?access=qbadmin2024 in URL
-  const ADMIN_TOKEN='qbadmin2024';
+  const ADMIN_TOKEN='faltuqb';
   const urlToken=new URLSearchParams(window.location.search).get('access');
   if(urlToken!==ADMIN_TOKEN){
     const gate=document.getElementById('access-gate');
