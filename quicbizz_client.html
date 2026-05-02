@@ -1375,13 +1375,25 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
           </div>
         </div>
         <div class="card mt-24">
-          <div class="card-header"><div class="card-title">Embed as button on your website</div></div>
+          <div class="card-header"><div class="card-title">Share & Embed</div></div>
           <div class="card-body">
-            <pre style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;overflow-x:auto">&lt;a href="https://<span id="cl-embed-url">quicbizz.app/chat/your-business</span>" target="_blank"
-   style="display:inline-flex;align-items:center;gap:8px;background:#2563ff;
-          color:#fff;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none"&gt;
-  💬 Chat with us
-&lt;/a&gt;</pre>
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px">YOUR CHATLINK</div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <div class="chatlink-url" id="cl-embed-url" style="flex:1;min-width:0;cursor:pointer;font-size:12px" onclick="copyLink()">loading...</div>
+                <button class="btn btn-secondary btn-sm" onclick="copyLink()">Copy</button>
+              </div>
+            </div>
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px">WEBSITE BUTTON EMBED</div>
+              <pre id="cl-embed-code" style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all">loading...</pre>
+              <button class="btn btn-ghost btn-xs" style="margin-top:6px" onclick="copyEmbedCode()">📋 Copy embed code</button>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px">FLOATING CHAT WIDGET</div>
+              <pre id="cl-widget-code" style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all">loading...</pre>
+              <button class="btn btn-ghost btn-xs" style="margin-top:6px" onclick="copyWidgetCode()">📋 Copy widget code</button>
+            </div>
           </div>
         </div>
         <!-- Custom Domain Section -->
@@ -1404,7 +1416,7 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
               <div style="font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;flex-direction:column;gap:4px">
                 <div><b>Type:</b> CNAME</div>
                 <div><b>Name:</b> chat (or your chosen subdomain prefix)</div>
-                <div><b>Value:</b> chat.quicbizz.app</div>
+                <div><b>Value:</b> <span id="cl-dns-target">your-site.netlify.app</span></div>
                 <div><b>TTL:</b> 3600 (or Auto)</div>
               </div>
               <div style="font-size:12px;color:var(--sub);margin-top:8px">Works with GoDaddy, Namecheap, Cloudflare, and all major DNS providers.</div>
@@ -2478,12 +2490,41 @@ function openEmbedM(){
 }
 
 // --- CHATLINK ---
+function getChatBaseUrl(){
+  // Auto-detect: works on Netlify, Vercel, custom domain, localhost
+  // If a custom domain is active, use that instead
+  if(S.customDomain&&S.customDomainStatus==='active'){
+    return 'https://'+S.customDomain;
+  }
+  // Use the current host — so it works everywhere automatically
+  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'/');
+  // Strip trailing quicbizz_client.html if present
+  return base.replace(/quicbizz_client\.html$/,'');
+}
+function buildChatUrl(clientId){
+  const base=getChatBaseUrl();
+  // If base ends with /, use ?chat= param (file-based deploy)
+  // If it looks like a clean domain/path, keep ?chat= param
+  return base.replace(/\/$/, '')+'?chat='+clientId;
+}
 function renderCL(){
-  const url='https://quicbizz.netlify.app/quicbizz_client.html?chat='+S.clientId;
+  const url=buildChatUrl(S.clientId);
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   s('cl-url',url);s('cl-embed-url',url);s('cl-preview-name',S.biz.name);
   const av=document.getElementById('cl-preview-av');
   if(av){if(S.bizLogo)av.innerHTML='<img src="'+S.bizLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';else av.textContent=S.biz.emoji||'🍽️';}
+  // Set DNS CNAME target to current host (so it's correct for Netlify, Vercel, custom)
+  const dnsTarget=document.getElementById('cl-dns-target');
+  if(dnsTarget)dnsTarget.textContent=window.location.hostname;
+  // Update embed code blocks dynamically
+  const embedCodeEl=document.getElementById('cl-embed-code');
+  if(embedCodeEl){
+    embedCodeEl.textContent=`<a href="${url}" target="_blank"\n   style="display:inline-flex;align-items:center;gap:8px;background:#2563ff;\n          color:#fff;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none">\n  \u{1F4AC} Chat with us\n</a>`;
+  }
+  const widgetCodeEl=document.getElementById('cl-widget-code');
+  if(widgetCodeEl){
+    widgetCodeEl.textContent=`<!-- QuicBizz Chat Widget -->\n<script>\n(function(){\n  var btn=document.createElement('a');\n  btn.href='${url}';\n  btn.target='_blank';\n  btn.innerHTML='\u{1F4AC}';\n  btn.style.cssText='position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:#2563ff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:0 4px 20px rgba(37,99,255,.4);z-index:9999';\n  document.body.appendChild(btn);\n})();\n<\/script>`;
+  }
   // Populate source tracking URLs in channels page
   const srcEl=document.getElementById('chatlink-source-urls');
   if(srcEl&&S.clientId){
@@ -2508,6 +2549,8 @@ function renderCL(){
   }
 }
 function copyLink(){navigator.clipboard?.writeText(document.getElementById('cl-url')?.textContent||'').catch(()=>{});toast('ChatLink copied!','success');}
+function copyEmbedCode(){const el=document.getElementById('cl-embed-code');navigator.clipboard?.writeText(el?.textContent||'').catch(()=>{});toast('Embed code copied!','success');}
+function copyWidgetCode(){const el=document.getElementById('cl-widget-code');navigator.clipboard?.writeText(el?.textContent||'').catch(()=>{});toast('Widget code copied!','success');}
 function openShareM(){
   const url=document.getElementById('cl-url')?.textContent||'';
   om('Share your ChatLink',`<div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);background:var(--accent-l);border:1.5px solid rgba(37,99,255,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px">${url}</div>
@@ -3653,6 +3696,9 @@ async function loadCustomDomain(){
   try{
     const {data}=await sb.from('clients').select('custom_domain,custom_domain_status').eq('id',S.clientId).single();
     if(data&&data.custom_domain){
+      // Store in state so getChatBaseUrl() can use it
+      S.customDomain=data.custom_domain;
+      S.customDomainStatus=data.custom_domain_status||'pending';
       const inp=document.getElementById('custom-domain-input');
       if(inp)inp.value=data.custom_domain;
       const statusEl=document.getElementById('custom-domain-status');
