@@ -351,11 +351,14 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
 .cl-img-preview img{height:48px;width:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
 .cl-img-preview-name{font-size:12px;color:var(--sub);flex:1}
 .cl-img-preview-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px}
-.chatlink-page-card{width:100%;max-width:420px;background:var(--white);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column}
+.chatlink-page-card{width:100%;max-width:420px;background:var(--white);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.cl-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.cl-input-row{flex-shrink:0;padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:9px;background:var(--white)}
+.cl-powered{flex-shrink:0}
 .cl-header{padding:16px 20px;display:flex;align-items:center;gap:12px}
 .cl-av{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;background:rgba(255,255,255,.2)}
 .cl-av img{width:100%;height:100%;object-fit:cover}
-.cl-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:320px;max-height:420px}
+.cl-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;scroll-behavior:smooth}
 .cl-msg{display:flex;gap:8px;align-items:flex-end;max-width:85%}
 .cl-msg-bot{align-self:flex-start}.cl-msg-user{align-self:flex-end;flex-direction:row-reverse}
 .cl-bubble{padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.55}
@@ -397,9 +400,9 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
   .ca-main{padding:16px 14px;width:100%;overflow-x:hidden}
   .ca-header{flex-direction:column;gap:10px;align-items:flex-start}
   .ca-header .flex{flex-wrap:wrap;gap:6px}
-  .chatlink-page{padding:0}
-  .chatlink-page-card{border-radius:0;max-width:100%!important;height:100vh!important}
-  .cl-msgs{max-height:calc(100vh - 200px)}
+  .chatlink-page{padding:0;height:100dvh;height:100vh}
+  .chatlink-page-card{border-radius:0!important;max-width:100%!important;height:100dvh!important;height:100vh!important;height:-webkit-fill-available!important}
+  .cl-msgs{min-height:0;max-height:unset}
   .prod-grid{grid-template-columns:1fr 1fr}
   .modal{margin:8px;padding:18px;max-height:94vh;width:calc(100% - 16px);max-width:100%}
   .modal-lg{max-width:calc(100% - 16px)}
@@ -1375,25 +1378,13 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
           </div>
         </div>
         <div class="card mt-24">
-          <div class="card-header"><div class="card-title">Share & Embed</div></div>
+          <div class="card-header"><div class="card-title">Embed as button on your website</div></div>
           <div class="card-body">
-            <div style="margin-bottom:16px">
-              <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px">YOUR CHATLINK</div>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <div class="chatlink-url" id="cl-embed-url" style="flex:1;min-width:0;cursor:pointer;font-size:12px" onclick="copyLink()">loading...</div>
-                <button class="btn btn-secondary btn-sm" onclick="copyLink()">Copy</button>
-              </div>
-            </div>
-            <div style="margin-bottom:16px">
-              <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px">WEBSITE BUTTON EMBED</div>
-              <pre id="cl-embed-code" style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all">loading...</pre>
-              <button class="btn btn-ghost btn-xs" style="margin-top:6px" onclick="copyEmbedCode()">📋 Copy embed code</button>
-            </div>
-            <div>
-              <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px">FLOATING CHAT WIDGET</div>
-              <pre id="cl-widget-code" style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all">loading...</pre>
-              <button class="btn btn-ghost btn-xs" style="margin-top:6px" onclick="copyWidgetCode()">📋 Copy widget code</button>
-            </div>
+            <pre style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;overflow-x:auto">&lt;a href="https://<span id="cl-embed-url">quicbizz.app/chat/your-business</span>" target="_blank"
+   style="display:inline-flex;align-items:center;gap:8px;background:#2563ff;
+          color:#fff;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none"&gt;
+  💬 Chat with us
+&lt;/a&gt;</pre>
           </div>
         </div>
         <!-- Custom Domain Section -->
@@ -1416,7 +1407,7 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
               <div style="font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;flex-direction:column;gap:4px">
                 <div><b>Type:</b> CNAME</div>
                 <div><b>Name:</b> chat (or your chosen subdomain prefix)</div>
-                <div><b>Value:</b> <span id="cl-dns-target">your-site.netlify.app</span></div>
+                <div><b>Value:</b> chat.quicbizz.app</div>
                 <div><b>TTL:</b> 3600 (or Auto)</div>
               </div>
               <div style="font-size:12px;color:var(--sub);margin-top:8px">Works with GoDaddy, Namecheap, Cloudflare, and all major DNS providers.</div>
@@ -1519,7 +1510,7 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
 <div id="view-chatlink" class="view">
   <div class="chatlink-page">
     <div id="cl-preview-label" style="font-size:12px;color:var(--muted);margin-bottom:16px;text-align:center">Your customers see this when they open your ChatLink</div>
-    <div class="chatlink-page-card" style="height:580px">
+    <div class="chatlink-page-card" id="cl-page-card" style="height:580px">
       <div class="cl-header" id="cl-chat-header" style="background:var(--accent)">
         <div class="cl-av" id="cl-av-icon">🍽️</div>
         <div>
@@ -1529,7 +1520,7 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
         </div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
           <button id="cl-back-btn" class="btn btn-sm" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="gv('landing')">← Back</button>
-          <button id="cl-dashboard-btn" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="gv('client-admin')">← Dashboard</button>
+          <button id="cl-dashboard-btn" class="btn btn-sm" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="gv('client-admin')">← Dashboard</button>
         </div>
       </div>
       <div class="cl-msgs" id="cl-msgs"></div>
@@ -2490,41 +2481,12 @@ function openEmbedM(){
 }
 
 // --- CHATLINK ---
-function getChatBaseUrl(){
-  // Auto-detect: works on Netlify, Vercel, custom domain, localhost
-  // If a custom domain is active, use that instead
-  if(S.customDomain&&S.customDomainStatus==='active'){
-    return 'https://'+S.customDomain;
-  }
-  // Use the current host — so it works everywhere automatically
-  const base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'/');
-  // Strip trailing quicbizz_client.html if present
-  return base.replace(/quicbizz_client\.html$/,'');
-}
-function buildChatUrl(clientId){
-  const base=getChatBaseUrl();
-  // If base ends with /, use ?chat= param (file-based deploy)
-  // If it looks like a clean domain/path, keep ?chat= param
-  return base.replace(/\/$/, '')+'?chat='+clientId;
-}
 function renderCL(){
-  const url=buildChatUrl(S.clientId);
+  const url='https://quicbizz.netlify.app/quicbizz_client.html?chat='+S.clientId;
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   s('cl-url',url);s('cl-embed-url',url);s('cl-preview-name',S.biz.name);
   const av=document.getElementById('cl-preview-av');
   if(av){if(S.bizLogo)av.innerHTML='<img src="'+S.bizLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';else av.textContent=S.biz.emoji||'🍽️';}
-  // Set DNS CNAME target to current host (so it's correct for Netlify, Vercel, custom)
-  const dnsTarget=document.getElementById('cl-dns-target');
-  if(dnsTarget)dnsTarget.textContent=window.location.hostname;
-  // Update embed code blocks dynamically
-  const embedCodeEl=document.getElementById('cl-embed-code');
-  if(embedCodeEl){
-    embedCodeEl.textContent=`<a href="${url}" target="_blank"\n   style="display:inline-flex;align-items:center;gap:8px;background:#2563ff;\n          color:#fff;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none">\n  \u{1F4AC} Chat with us\n</a>`;
-  }
-  const widgetCodeEl=document.getElementById('cl-widget-code');
-  if(widgetCodeEl){
-    widgetCodeEl.textContent=`<!-- QuicBizz Chat Widget -->\n<script>\n(function(){\n  var btn=document.createElement('a');\n  btn.href='${url}';\n  btn.target='_blank';\n  btn.innerHTML='\u{1F4AC}';\n  btn.style.cssText='position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:#2563ff;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:0 4px 20px rgba(37,99,255,.4);z-index:9999';\n  document.body.appendChild(btn);\n})();\n<\/script>`;
-  }
   // Populate source tracking URLs in channels page
   const srcEl=document.getElementById('chatlink-source-urls');
   if(srcEl&&S.clientId){
@@ -2549,8 +2511,6 @@ function renderCL(){
   }
 }
 function copyLink(){navigator.clipboard?.writeText(document.getElementById('cl-url')?.textContent||'').catch(()=>{});toast('ChatLink copied!','success');}
-function copyEmbedCode(){const el=document.getElementById('cl-embed-code');navigator.clipboard?.writeText(el?.textContent||'').catch(()=>{});toast('Embed code copied!','success');}
-function copyWidgetCode(){const el=document.getElementById('cl-widget-code');navigator.clipboard?.writeText(el?.textContent||'').catch(()=>{});toast('Widget code copied!','success');}
 function openShareM(){
   const url=document.getElementById('cl-url')?.textContent||'';
   om('Share your ChatLink',`<div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);background:var(--accent-l);border:1.5px solid rgba(37,99,255,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px">${url}</div>
@@ -2775,8 +2735,8 @@ function initCL(){
     hdr.style.background=chatColor;
     hdr.style.color='#fff';
   }
-  // Apply theme to chat card
-  const card=document.querySelector('#view-client-admin .chatlink-page-card');
+  // Apply theme to chat card — works for both preview and customer view
+  const card=document.getElementById('cl-page-card')||document.querySelector('.chatlink-page-card');
   if(card){
     if(chatTheme==='dark'){
       card.style.background='#1a1a2e';
@@ -3696,9 +3656,6 @@ async function loadCustomDomain(){
   try{
     const {data}=await sb.from('clients').select('custom_domain,custom_domain_status').eq('id',S.clientId).single();
     if(data&&data.custom_domain){
-      // Store in state so getChatBaseUrl() can use it
-      S.customDomain=data.custom_domain;
-      S.customDomainStatus=data.custom_domain_status||'pending';
       const inp=document.getElementById('custom-domain-input');
       if(inp)inp.value=data.custom_domain;
       const statusEl=document.getElementById('custom-domain-status');
@@ -3774,6 +3731,38 @@ function updateMobLogo(){
   if(S.bizLogo){wrap.innerHTML=`<img src="${S.bizLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:7px">`;}
   else{wrap.textContent=S.biz?.emoji||'🏪';}
 }
+function clMakeFullscreen(){
+  const card=document.getElementById('cl-page-card')||document.querySelector('.chatlink-page-card');
+  if(card){
+    card.style.height='100dvh'; // dvh = dynamic viewport height (mobile-safe)
+    card.style.maxWidth='100%';
+    card.style.borderRadius='0';
+    card.style.display='flex';
+    card.style.flexDirection='column';
+  }
+  const pg=document.querySelector('.chatlink-page');
+  if(pg){pg.style.padding='0';pg.style.justifyContent='flex-start';}
+  // Make msgs area expand to fill available space
+  const msgs=document.getElementById('cl-msgs');
+  if(msgs){msgs.style.flex='1';msgs.style.overflowY='auto';}
+}
+
+function clEnsureInput(){
+  // Make absolutely sure the input row is visible and functional
+  const row=document.querySelector('.cl-input-row');
+  if(row){
+    row.style.display='flex';
+    row.style.flexShrink='0'; // prevent it from being squished
+  }
+  const inp=document.getElementById('cl-input');
+  if(inp){
+    inp.disabled=false;
+    inp.style.display='';
+  }
+  const btn=document.getElementById('cl-send-btn');
+  if(btn)btn.disabled=false;
+}
+
 function showCLLoading(show){
   const el=document.getElementById('cl-loading-screen');
   if(el){
@@ -3848,11 +3837,12 @@ function showCLLoading(show){
               <div style="font-size:12px;color:var(--muted)">If you're the business owner, please log in and upgrade your plan.</div>
             </div>`;
           }
-          // Hide input area
+          // Hide input area for expired trial
           const inputRow=document.querySelector('.cl-input-row');
           if(inputRow)inputRow.style.display='none';
           const qrRow=document.getElementById('cl-qr-row');
           if(qrRow)qrRow.style.display='none';
+          clMakeFullscreen();
           gv('chatlink');
           initCL_header(client);
           return;
@@ -3889,25 +3879,26 @@ function showCLLoading(show){
     }
     // Hide loading screen, show chat
     showCLLoading(false);
-    document.getElementById('cl-dashboard-btn')?.style.setProperty('display','none');
-    document.getElementById('cl-back-btn')?.style.setProperty('display','none');
-    document.getElementById('cl-preview-label')?.style.setProperty('display','none');
-    const card=document.querySelector('.chatlink-page-card');
-    if(card){card.style.height='100vh';card.style.maxWidth='100%';card.style.borderRadius='0';}
-    const pg=document.querySelector('.chatlink-page');
-    if(pg){pg.style.padding='0';pg.style.justifyContent='flex-start';}
+    // Hide dashboard-only UI elements
+    const _dbBtn=document.getElementById('cl-dashboard-btn');
+    if(_dbBtn)_dbBtn.style.display='none';
+    const _bkBtn=document.getElementById('cl-back-btn');
+    if(_bkBtn)_bkBtn.style.display='none';
+    const _pvLabel=document.getElementById('cl-preview-label');
+    if(_pvLabel)_pvLabel.style.display='none';
+    // Make card full-screen for customer
+    clMakeFullscreen();
     gv('chatlink');
     initCL();
+    // Always ensure input is visible
+    clEnsureInput();
     }catch(clErr){
       console.error('ChatLink init error:',clErr);
       showCLLoading(false);
-      // Still show the chat page even if data load failed — user sees a friendly greeting
-      const card=document.querySelector('.chatlink-page-card');
-      if(card){card.style.height='100vh';card.style.maxWidth='100%';card.style.borderRadius='0';}
-      const pg=document.querySelector('.chatlink-page');
-      if(pg){pg.style.padding='0';pg.style.justifyContent='flex-start';}
+      clMakeFullscreen();
       gv('chatlink');
       initCL();
+      clEnsureInput();
     }
     return;
   }
