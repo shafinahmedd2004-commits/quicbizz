@@ -10,7 +10,15 @@
 // ── SUPABASE CONFIG ──────────────────────────────────────────
 const SUPABASE_URL = 'https://kgbktrsdricudjbksnud.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYmt0cnNkcmljdWRqYmtzbnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NjgwMTksImV4cCI6MjA5MDI0NDAxOX0.xGK_O5ZApOqA0N7JELTihdYUYIHTCMDaH2jfAT1NmzE';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { autoRefreshToken:true, persistSession:true, detectSessionInUrl:true, storageKey:'qb-auth' }
+});
+// Refresh session before writes to prevent intermittent failures
+async function ensureSession(){
+  let {data:{session}}=await sb.auth.getSession();
+  if(!session){const r=await sb.auth.refreshSession();session=r.data.session;}
+  return session;
+}
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -351,14 +359,11 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
 .cl-img-preview img{height:48px;width:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
 .cl-img-preview-name{font-size:12px;color:var(--sub);flex:1}
 .cl-img-preview-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px}
-.chatlink-page-card{width:100%;max-width:420px;background:var(--white);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column;position:relative}
-.cl-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.cl-input-row{flex-shrink:0;padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:9px;background:var(--white)}
-.cl-powered{flex-shrink:0}
+.chatlink-page-card{width:100%;max-width:420px;background:var(--white);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column}
 .cl-header{padding:16px 20px;display:flex;align-items:center;gap:12px}
 .cl-av{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;background:rgba(255,255,255,.2)}
 .cl-av img{width:100%;height:100%;object-fit:cover}
-.cl-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;scroll-behavior:smooth}
+.cl-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;max-height:none;height:100%}
 .cl-msg{display:flex;gap:8px;align-items:flex-end;max-width:85%}
 .cl-msg-bot{align-self:flex-start}.cl-msg-user{align-self:flex-end;flex-direction:row-reverse}
 .cl-bubble{padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.55}
@@ -400,9 +405,12 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
   .ca-main{padding:16px 14px;width:100%;overflow-x:hidden}
   .ca-header{flex-direction:column;gap:10px;align-items:flex-start}
   .ca-header .flex{flex-wrap:wrap;gap:6px}
-  .chatlink-page{padding:0;height:100dvh;height:100vh}
-  .chatlink-page-card{border-radius:0!important;max-width:100%!important;height:100dvh!important;height:100vh!important;height:-webkit-fill-available!important}
-  .cl-msgs{min-height:0;max-height:unset}
+  .chatlink-page{padding:0}
+  .chatlink-page-card{border-radius:0;max-width:100%!important;height:100vh!important}
+  .cl-msgs{max-height:calc(100vh - 200px)}
+  #view-chatlink{position:fixed;inset:0;overflow:hidden}
+  .chatlink-page{height:100%;padding:0!important}
+  .chatlink-page-card{height:100%!important;border-radius:0!important;display:flex;flex-direction:column}
   .prod-grid{grid-template-columns:1fr 1fr}
   .modal{margin:8px;padding:18px;max-height:94vh;width:calc(100% - 16px);max-width:100%}
   .modal-lg{max-width:calc(100% - 16px)}
@@ -1169,7 +1177,7 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
 
       <!-- CUSTOMERS -->
       <div class="ca-page" id="ca-customers">
-        <div class="ca-header"><div><div class="ca-title">Customers</div><div class="ca-sub" id="cust-sub">All customers</div></div><button class="btn btn-primary btn-sm" onclick="openAddCustModal()">+ Add customer</button></div>
+        <div class="ca-header"><div><div class="ca-title">Customers</div><div class="ca-sub" id="cust-sub">All customers</div></div><div style="display:flex;gap:8px;align-items:center"><input class="input" id="cust-search" placeholder="Search name or phone…" style="width:180px;font-size:13px" oninput="renderCustomers(this.value)"><button class="btn btn-primary btn-sm" onclick="openAddCustModal()">+ Add customer</button></div></div>
         <div class="card"><div class="card-body" id="cust-list" style="padding:8px 20px"></div></div>
         <!-- Saved Replies -->
         <div class="card mt-24">
@@ -1510,7 +1518,7 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
 <div id="view-chatlink" class="view">
   <div class="chatlink-page">
     <div id="cl-preview-label" style="font-size:12px;color:var(--muted);margin-bottom:16px;text-align:center">Your customers see this when they open your ChatLink</div>
-    <div class="chatlink-page-card" id="cl-page-card" style="height:580px">
+    <div class="chatlink-page-card" style="height:580px">
       <div class="cl-header" id="cl-chat-header" style="background:var(--accent)">
         <div class="cl-av" id="cl-av-icon">🍽️</div>
         <div>
@@ -1519,8 +1527,8 @@ body.dark .nav-profile-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.5);}
           <div style="font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px"><span style="width:5px;height:5px;border-radius:50%;background:#4ade80;display:inline-block"></span>Online now</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <button id="cl-back-btn" class="btn btn-sm" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="gv('landing')">← Back</button>
-          <button id="cl-dashboard-btn" class="btn btn-sm" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="gv('client-admin')">← Dashboard</button>
+          <button id="cl-back-btn" class="btn btn-sm" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="S.isDemoMode=false;S.clientId=null;gv('landing')">← Back</button>
+          <button id="cl-dashboard-btn" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer" onclick="gv('client-admin')">← Dashboard</button>
         </div>
       </div>
       <div class="cl-msgs" id="cl-msgs"></div>
@@ -1580,7 +1588,9 @@ const S = {
   },
   biz:{name:'Bella Restaurant',type:'Restaurant / Food',phone:'+880 1711-000000',address:'House 12, Road 4, Dhanmondi, Dhaka',hours:'Sat–Thu: 11am–10pm | Fri: 2pm–10pm',emoji:'🍽️'},
   clHistory:[], clTyping:false, apiKey:null, geminiKey:null, aiProvider:'anthropic', currentSessionId:null,
-  clientId:null
+  clientId:null,
+  isChatLinkMode:false,
+  isDemoMode:false
 };
 
 // ================================================================
@@ -1620,8 +1630,8 @@ function gv(v) {
   updateNavProfile();
   if(v==='client-admin')initCA();
   if(v==='chatlink')initCL();
-  // Sync correct theme whenever view changes
   if(typeof syncThemeForView==='function')syncThemeForView(v);
+  if(v==='landing')requestAnimationFrame(()=>document.querySelectorAll('#view-landing .reveal').forEach(el=>el.classList.add('visible')));
 }
 function toggleNavMob(){
   const m=document.getElementById('nav-mob-menu');
@@ -1719,18 +1729,13 @@ async function doLogin(){
       return;
     }
     if(!data?.user){toast('Login failed — no user returned. Please try again.','error');return;}
-    // Show dashboard immediately for speed — load data in parallel
-    gv('client-admin');
-    toast('Welcome back!','success');
+    S.isDemoMode=false;S.isChatLinkMode=false;S.clientId=null;
     await loadClientData(data.user);
-    if(!S.clientId){
-      await new Promise(r=>setTimeout(r,600));
-      await loadClientData(data.user);
-    }
-    if(!S.clientId){toast('Account data not found. Please contact support.','error');return;}
-    updateNavProfile();
-    checkPaywall();
-    resetIdleTimer();
+    if(!S.clientId){await new Promise(r=>setTimeout(r,800));await loadClientData(data.user);}
+    if(!S.clientId){toast('Account not found. Please contact support.','error');return;}
+    gv('client-admin');
+    toast('Welcome back! 👋','success');
+    updateNavProfile();checkPaywall();resetIdleTimer();
   }catch(err){
     toast(err.message||'Login failed — please try again.','error');
   }finally{
@@ -2007,7 +2012,8 @@ function renderOrders(){
 }
 async function delOrder(id){
   if(!confirm('Delete order?'))return;
-  await sb.from('orders').delete().eq('id',id);
+  const {data:r,error}=await sb.rpc('delete_order',{p_order_id:id});
+  if(error||r?.error){toast('Delete failed: '+(error?.message||r?.error),'error');return;}
   S.orders=S.orders.filter(o=>o.id!==id);
   renderOrders();updateMetrics();renderOvOrders();toast('Order deleted','info');
 }
@@ -2022,10 +2028,8 @@ function editOrder(id){
     [{label:'Save',primary:true,fn:async()=>{
       const newCust=V('eo-c'),newItems=V('eo-i'),newTotal=+V('eo-t'),newStatus=V('eo-s'),newNotes=V('eo-notes');
       if(S.clientId){
-        const {error}=await sb.from('orders').update({
-          customer_name:newCust,items:newItems,total:newTotal,status:newStatus,notes:newNotes||''
-        }).eq('id',o.id);
-        if(error){toast('Save failed: '+error.message,'error');return;}
+        const {data:r,error}=await sb.rpc('save_order',{p:{id:o.id,client_id:S.clientId,customer_name:newCust,items:newItems,total:newTotal,status:newStatus,notes:newNotes||''}});
+        if(error||r?.error){toast('Save failed: '+(error?.message||r?.error),'error');return;}
       }
       // Always update local state
       o.customer=newCust;o.items=newItems;o.total=newTotal;o.status=newStatus;o.notes=newNotes;
@@ -2050,9 +2054,9 @@ function openAddOrderModal(){
       const c=V('ao-c'),i=V('ao-i');if(!c||!i){toast('Fill required fields','error');return;}
       const newOrder={client_id:S.clientId,customer_name:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')};
       if(S.clientId){
-        const {data,error}=await sb.from('orders').insert(newOrder).select().single();
-        if(error){toast('Error saving order: '+error.message,'error');return;}
-        S.orders.unshift({id:data.id,customer:data.customer_name,channel:data.channel,items:data.items,total:data.total,status:data.status});
+        const {data:r,error}=await sb.rpc('save_order',{p:{client_id:S.clientId,customer_name:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')}});
+        if(error||r?.error){toast('Error saving order: '+(error?.message||r?.error),'error');return;}
+        S.orders.unshift({id:r.id,customer:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')});
       } else {
         S.orders.unshift({id:S.nextOrdId++,customer:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')});
       }
@@ -2106,12 +2110,12 @@ function openAddProductModal(){
       const newProd={client_id:S.clientId,name,price:+V('np-price')||0,
         description:V('np-desc'),category:V('np-cat')||'General',
         stock:+V('np-stock')||0,sku:V('np-sku'),emoji:V('np-emoji')||'📦',
-        sizes:JSON.stringify(sizes),images:photos};
-      const {data:savedProd,error:prodErr}=await sb.from('products').insert(newProd).select().single();
-      if(prodErr){toast('Error saving product: '+prodErr.message,'error');return;}
-      S.products.unshift({id:savedProd.id,name,price:savedProd.price,stock:savedProd.stock,
-        emoji:savedProd.emoji,desc:savedProd.description,cat:savedProd.category,
-        photos:savedProd.images||[],sizes:savedProd.sizes||[],colors,sku:savedProd.sku});
+        sizes:sizes,images:photos,tags:[]};
+      const {data:r,error:prodErr}=await sb.rpc('save_product',{p:newProd});
+      if(prodErr||r?.error){toast('Error saving product: '+(prodErr?.message||r?.error),'error');return;}
+      S.products.unshift({id:r.id,name,price:+V('np-price')||0,stock:+V('np-stock')||0,
+        emoji:V('np-emoji')||'📦',desc:V('np-desc'),cat:V('np-cat')||'General',
+        photos,sizes,colors,sku:V('np-sku')});
       window._pendingPhotos=[];
       renderProducts();cm();toast('Product added!','success');
     }}],
@@ -2165,13 +2169,14 @@ function editProduct(id){
       if(S.clientId && isUUID){
         const btn=document.querySelector('#mfooter .btn-primary');
         if(btn){btn.disabled=true;btn.textContent='Saving...';}
-        const {error}=await sb.from('products').update({
+        const {data:r,error}=await sb.rpc('save_product',{p:{
+          id:p.id,client_id:S.clientId,
           name:V('ep-name'),price:+V('ep-price')||0,description:V('ep-desc'),
           category:V('ep-cat')||'General',stock:+V('ep-stock')||0,sku:V('ep-sku')||'',
-          emoji:V('ep-emoji')||'📦',sizes:JSON.stringify(sizes),images:updatedPhotos
-        }).eq('id',p.id);
+          emoji:V('ep-emoji')||'📦',sizes:sizes,images:updatedPhotos,tags:[]
+        }});
         if(btn){btn.disabled=false;btn.textContent='Save changes';}
-        if(error){toast('Error saving: '+error.message,'error');return;}
+        if(error||r?.error){toast('Error saving: '+(error?.message||r?.error),'error');return;}
       }
       // Always update local state
       p.name=V('ep-name');p.price=+V('ep-price')||0;p.desc=V('ep-desc');
@@ -2198,8 +2203,8 @@ async function delProduct(id){
     S.products=S.products.filter(p=>p.id!==id);
     renderProducts();toast('Removed from catalog','info');return;
   }
-  const {error}=await sb.from('products').delete().eq('id',id);
-  if(error){toast('Delete failed: '+error.message,'error');return;}
+  const {data:r,error}=await sb.rpc('delete_product',{p_product_id:id});
+  if(error||r?.error){toast('Delete failed: '+(error?.message||r?.error),'error');return;}
   S.products=S.products.filter(p=>p.id!==id);
   renderProducts();toast('Product removed','success');
 }
@@ -2289,10 +2294,12 @@ function updateLogoPreview(){
 function removeLogo(){S.bizLogo=null;updateLogoPreview();updateSidebarLogo();toast('Logo removed','info');}
 
 // --- CUSTOMERS ---
-function renderCustomers(){
+function renderCustomers(filter=''){
   const list=document.getElementById('cust-list');if(!list)return;
-  const sub=document.getElementById('cust-sub');if(sub)sub.textContent=S.customers.length+' customers';
-  list.innerHTML=S.customers.map(c=>`<div class="c-row">
+  const q=(filter||'').toLowerCase().trim();
+  const filtered=q?S.customers.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)):S.customers;
+  const sub=document.getElementById('cust-sub');if(sub)sub.textContent=filtered.length+' customers';
+  list.innerHTML=filtered.map(c=>`<div class="c-row">
     <div class="c-av">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
     <div style="flex:1"><div style="font-size:14px;font-weight:700">${c.name}</div><div style="font-size:11px;color:var(--muted)">${c.phone}</div></div>
     <div style="text-align:right"><div style="font-size:13px;font-weight:700">${c.orders} orders</div><div style="font-size:11px;color:var(--muted)">৳${c.total.toLocaleString()}</div></div>
@@ -2447,7 +2454,7 @@ async function saveAI(){
   const payload={
     client_id:S.clientId,
     ai_name:S.aiConfig.name,greeting:S.aiConfig.greeting,
-    personality:S.aiConfig.personality,language:S.aiConfig.language,length:S.aiConfig.length,
+    personality:S.aiConfig.personality||'friendly',language:S.aiConfig.language,length:S.aiConfig.length,
     instructions:S.aiConfig.instructions,context:S.aiConfig.bizinfo,blocked:S.aiConfig.blocked,
     upsell:S.aiConfig.upsell,autoconfirm:S.aiConfig.autoconfirm,
     collect_phone:S.aiConfig.phone,send_summary:S.aiConfig.summary,escalate:S.aiConfig.escalate,
@@ -2457,17 +2464,8 @@ async function saveAI(){
     chat_color:S.aiConfig.chatColor||'#2563ff',
     updated_at:new Date().toISOString()
   };
-  // Use upsert with onConflict:'client_id' — atomically inserts or updates,
-  // eliminating the race condition that caused "duplicate key" errors when
-  // saving quickly or when a record already exists from signup.
-  const {error}=await sb.from('ai_configs')
-    .upsert(payload,{onConflict:'client_id',ignoreDuplicates:false});
-  if(error){
-    // Upsert fallback: if upsert itself fails (e.g. RLS blocks insert but allows update),
-    // fall back to a plain UPDATE which always works for existing records.
-    const {error:updateErr}=await sb.from('ai_configs').update(payload).eq('client_id',S.clientId);
-    if(updateErr){toast('Save failed: '+updateErr.message,'error');return;}
-  }
+  const {data:rpcRes,error}=await sb.rpc('save_ai_config',{p:payload});
+  if(error||rpcRes?.error){toast('Save failed: '+(error?.message||rpcRes?.error),'error');return;}
   toast('AI settings saved! ✓','success');
 }
 
@@ -2482,7 +2480,7 @@ function openEmbedM(){
 
 // --- CHATLINK ---
 function renderCL(){
-  const url='https://quicbizz.netlify.app/quicbizz_client.html?chat='+S.clientId;
+  const url=window.location.origin+window.location.pathname+'?chat='+S.clientId;
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   s('cl-url',url);s('cl-embed-url',url);s('cl-preview-name',S.biz.name);
   const av=document.getElementById('cl-preview-av');
@@ -2556,6 +2554,7 @@ async function saveSettings(){
   }
   if(S.clientId){
     const updateData={
+      id:S.clientId,
       business_name:newName,
       business_type:gv2('set-biztype'),
       phone:newPhone,
@@ -2569,11 +2568,11 @@ async function saveSettings(){
       sf_api_key:gv2('set-sf-key')||'',
       sf_secret_key:gv2('set-sf-secret')||''
     };
-    const {error}=await sb.from('clients').update(updateData).eq('id',S.clientId);
-    if(error){
+    const {data:rpcRes,error}=await sb.rpc('save_client_profile',{p:updateData});
+    if(error||rpcRes?.error){
       const errEl=document.getElementById('settings-save-error');
-      if(errEl){errEl.style.display='block';errEl.textContent='Save failed: '+error.message+' — make sure your Supabase RLS policy allows UPDATE on the clients table for authenticated users.';}
-      toast('Save failed: '+error.message,'error');return;
+      if(errEl){errEl.style.display='block';errEl.textContent='Save failed: '+(error?.message||rpcRes?.error);}
+      toast('Save failed: '+(error?.message||rpcRes?.error),'error');return;
     }
     const errEl=document.getElementById('settings-save-error');
     if(errEl)errEl.style.display='none';
@@ -2735,21 +2734,24 @@ function initCL(){
     hdr.style.background=chatColor;
     hdr.style.color='#fff';
   }
-  // Apply theme to chat card — works for both preview and customer view
-  const card=document.getElementById('cl-page-card')||document.querySelector('.chatlink-page-card');
-  if(card){
+  // Apply theme to ALL chatlink cards
+  const msgs=document.getElementById('cl-msgs');
+  document.querySelectorAll('.chatlink-page-card').forEach(card=>{
     if(chatTheme==='dark'){
-      card.style.background='#1a1a2e';
-      const msgs=document.getElementById('cl-msgs');
-      if(msgs)msgs.style.background='#16213e';
+      card.style.background='#1a1a2e';card.style.color='#e8eaf6';
+      if(msgs){msgs.style.background='#16213e';msgs.style.color='#e8eaf6';}
     } else if(chatTheme==='custom'){
-      card.style.background=chatColor+'11';
+      card.style.background=chatColor+'18';card.style.color='';
+      if(msgs){msgs.style.background='';msgs.style.color='';}
     } else {
-      card.style.background='';
-      const msgs=document.getElementById('cl-msgs');
-      if(msgs)msgs.style.background='';
+      card.style.background='';card.style.color='';
+      if(msgs){msgs.style.background='';msgs.style.color='';}
     }
-  }
+  });
+  // Inject accent color CSS
+  let _st=document.getElementById('cl-theme-style');
+  if(!_st){_st=document.createElement('style');_st.id='cl-theme-style';document.head.appendChild(_st);}
+  _st.textContent=`.cl-qr{border-color:${chatColor}40;color:${chatColor}}.cl-qr:hover{background:${chatColor}12}.cl-send{background:${chatColor}!important}.cl-msg-user .cl-bubble{background:${chatColor}!important;color:#fff}`;
   const nm=document.getElementById('cl-biz-name-display');if(nm)nm.textContent=bi.name||'Customer Service';
   const sl=document.getElementById('cl-biz-slogan-display');
   if(sl){if(bi.slogan){sl.textContent=bi.slogan;sl.style.display='block';}else{sl.style.display='none';}}
@@ -2757,7 +2759,7 @@ function initCL(){
   if(av){if(S.bizLogo)av.innerHTML=`<img src="${S.bizLogo}" style="width:100%;height:100%;object-fit:cover">`;else av.textContent=bi.emoji||'🍽️';}
   S.clHistory=[];
   S.currentSessionId=null;
-  const msgs=document.getElementById('cl-msgs');if(msgs)msgs.innerHTML='';
+  const clMsgEl=document.getElementById('cl-msgs');if(clMsgEl)clMsgEl.innerHTML='';
   clMsgWithImages('bot',ai.greeting||`Hi! I'm the customer service for ${bi.name}. How can I help? 😊`);
   const qrRow=document.getElementById('cl-qr-row');
   if(qrRow)qrRow.innerHTML=ai.quickReplies.slice(0,5).map(q=>`<div class="cl-qr" onclick="clSend('${q.replace(/'/g,"\\'")}')">
@@ -3044,6 +3046,7 @@ async function openDemoChat(){
     // 4. Load demo client data
     const {data:client}=await sb.from('clients').select('*').eq('id',demoClientId).maybeSingle();
     if(!client){toast('Demo client not found','error');return;}
+    S.isDemoMode=true;
     S.clientId=client.id;
     S.biz={name:client.business_name,type:client.business_type,phone:client.phone,
            address:client.business_address,hours:client.business_hours,emoji:client.business_emoji||'🏪',slogan:client.business_slogan||'',
@@ -3067,7 +3070,9 @@ async function openDemoChat(){
         upsell:aiCfg.upsell!==false,
         quickReplies:aiCfg.quick_replies||S.aiConfig.quickReplies,
         faqs:aiCfg.faqs||[],
-        instructionSets:aiCfg.instruction_sets||[]
+        instructionSets:aiCfg.instruction_sets||[],
+        chatTheme:aiCfg.chat_theme||'light',
+        chatColor:aiCfg.chat_color||'#2563ff'
       };
     }
     await loadProducts();
@@ -3114,7 +3119,7 @@ function openInternalChatPreview(){
 
 // Save chat session to Supabase
 async function saveChatSession(customerMsg, botReply){
-  if(!S.clientId)return;
+  if(!S.clientId||S.isDemoMode)return;
   try{
     const custName=extractCustomerName(S.clHistory)||S.clCustomerName||null;
     if(custName)S.clCustomerName=custName;
@@ -3731,38 +3736,6 @@ function updateMobLogo(){
   if(S.bizLogo){wrap.innerHTML=`<img src="${S.bizLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:7px">`;}
   else{wrap.textContent=S.biz?.emoji||'🏪';}
 }
-function clMakeFullscreen(){
-  const card=document.getElementById('cl-page-card')||document.querySelector('.chatlink-page-card');
-  if(card){
-    card.style.height='100dvh'; // dvh = dynamic viewport height (mobile-safe)
-    card.style.maxWidth='100%';
-    card.style.borderRadius='0';
-    card.style.display='flex';
-    card.style.flexDirection='column';
-  }
-  const pg=document.querySelector('.chatlink-page');
-  if(pg){pg.style.padding='0';pg.style.justifyContent='flex-start';}
-  // Make msgs area expand to fill available space
-  const msgs=document.getElementById('cl-msgs');
-  if(msgs){msgs.style.flex='1';msgs.style.overflowY='auto';}
-}
-
-function clEnsureInput(){
-  // Make absolutely sure the input row is visible and functional
-  const row=document.querySelector('.cl-input-row');
-  if(row){
-    row.style.display='flex';
-    row.style.flexShrink='0'; // prevent it from being squished
-  }
-  const inp=document.getElementById('cl-input');
-  if(inp){
-    inp.disabled=false;
-    inp.style.display='';
-  }
-  const btn=document.getElementById('cl-send-btn');
-  if(btn)btn.disabled=false;
-}
-
 function showCLLoading(show){
   const el=document.getElementById('cl-loading-screen');
   if(el){
@@ -3793,6 +3766,7 @@ function showCLLoading(show){
   const params=new URLSearchParams(window.location.search);
   const chatClientId=params.get('chat');
   if(chatClientId){
+    S.isChatLinkMode=true;
     // Detect source (Instagram, Facebook, WhatsApp, Direct, etc.)
     (function detectChatSource(){
       const params=new URLSearchParams(window.location.search);
@@ -3837,12 +3811,11 @@ function showCLLoading(show){
               <div style="font-size:12px;color:var(--muted)">If you're the business owner, please log in and upgrade your plan.</div>
             </div>`;
           }
-          // Hide input area for expired trial
+          // Hide input area
           const inputRow=document.querySelector('.cl-input-row');
           if(inputRow)inputRow.style.display='none';
           const qrRow=document.getElementById('cl-qr-row');
           if(qrRow)qrRow.style.display='none';
-          clMakeFullscreen();
           gv('chatlink');
           initCL_header(client);
           return;
@@ -3872,38 +3845,39 @@ function showCLLoading(show){
           upsell:aiCfg.upsell!==false,
           quickReplies:aiCfg.quick_replies||S.aiConfig.quickReplies,
           faqs:aiCfg.faqs||[],
-          instructionSets:aiCfg.instruction_sets||[]
+          instructionSets:aiCfg.instruction_sets||[],
+        chatTheme:aiCfg.chat_theme||'light',
+        chatColor:aiCfg.chat_color||'#2563ff'
         };
       }
       await loadProducts();
     }
     // Hide loading screen, show chat
     showCLLoading(false);
-    // Hide dashboard-only UI elements
-    const _dbBtn=document.getElementById('cl-dashboard-btn');
-    if(_dbBtn)_dbBtn.style.display='none';
-    const _bkBtn=document.getElementById('cl-back-btn');
-    if(_bkBtn)_bkBtn.style.display='none';
-    const _pvLabel=document.getElementById('cl-preview-label');
-    if(_pvLabel)_pvLabel.style.display='none';
-    // Make card full-screen for customer
-    clMakeFullscreen();
+    document.getElementById('cl-dashboard-btn')?.style.setProperty('display','none');
+    document.getElementById('cl-back-btn')?.style.setProperty('display','none');
+    document.getElementById('cl-preview-label')?.style.setProperty('display','none');
+    const card=document.querySelector('.chatlink-page-card');
+    if(card){card.style.height='100vh';card.style.maxWidth='100%';card.style.borderRadius='0';}
+    const pg=document.querySelector('.chatlink-page');
+    if(pg){pg.style.padding='0';pg.style.justifyContent='flex-start';}
     gv('chatlink');
     initCL();
-    // Always ensure input is visible
-    clEnsureInput();
     }catch(clErr){
       console.error('ChatLink init error:',clErr);
       showCLLoading(false);
-      clMakeFullscreen();
+      // Still show the chat page even if data load failed — user sees a friendly greeting
+      const card=document.querySelector('.chatlink-page-card');
+      if(card){card.style.height='100vh';card.style.maxWidth='100%';card.style.borderRadius='0';}
+      const pg=document.querySelector('.chatlink-page');
+      if(pg){pg.style.padding='0';pg.style.justifyContent='flex-start';}
       gv('chatlink');
       initCL();
-      clEnsureInput();
     }
     return;
   }
   const {data:{session}}=await sb.auth.getSession();
-  if(session?.user){
+  if(session?.user && !S.isChatLinkMode){
     await loadClientData(session.user);
     // Handle Polar / payment gateway success redirect
     const _pp=new URLSearchParams(window.location.search);
@@ -3922,6 +3896,19 @@ const track=document.getElementById('ticker-track');
 if(track){const all=[...tickItems,...tickItems];track.innerHTML=all.map(t=>`<div class="ticker-item"><div class="ticker-dot"></div>${t}</div>`).join('');}
 const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');ro.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+if(document.getElementById('view-landing')?.classList.contains('active'))requestAnimationFrame(()=>document.querySelectorAll('#view-landing .reveal').forEach(el=>el.classList.add('visible')));
+
+// Mobile keyboard fix — resize chat area when keyboard opens
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{
+    const chatCard=document.querySelector('.chatlink-page-card');
+    if(!chatCard)return;
+    const vv=window.visualViewport;
+    chatCard.style.height=vv.height+'px';
+    const msgs=document.getElementById('cl-msgs');
+    if(msgs)setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},100);
+  });
+}
 
 // ================================================================
 //  GOOGLE OAUTH
@@ -3947,7 +3934,7 @@ async function doGoogleAuth(){
 
 // Handle Google OAuth return — Supabase fires onAuthStateChange
 sb.auth.onAuthStateChange(async (event, session) => {
-  // Skip if manual login or logout is handling this
+  if(S.isChatLinkMode)return;
   if(_loginInProgress||_logoutInProgress)return;
   // Handle sign-out event (e.g. session expired, signed out in another tab)
   if(event === 'SIGNED_OUT'){
@@ -3980,8 +3967,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
         });
       }
     }
-    // Only load if not already loaded
-    if(!S.clientId) {
+    if(!S.clientId||S.isDemoMode){S.isDemoMode=false;S.clientId=null;
       await loadClientData(session.user);
       if(document.getElementById('view-login')?.classList.contains('active') ||
          document.getElementById('view-signup')?.classList.contains('active')) {

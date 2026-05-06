@@ -1,7 +1,10 @@
 {
   "rewrites": [
+    { "source": "/", "destination": "/quicbizz_client.html" },
     { "source": "/client", "destination": "/quicbizz_client.html" },
-    { "source": "/client/", "destination": "/quicbizz_client.html" }
+    { "source": "/client/", "destination": "/quicbizz_client.html" },
+    { "source": "/api/steadfast", "destination": "/api/steadfast" },
+    { "source": "/api/admin", "destination": "/api/admin" }
   ],
   "redirects": [
     { "source": "/admin", "destination": "/", "statusCode": 404 },
@@ -12,7 +15,16 @@
       "source": "/quicbizz_staff_admin.html",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "Cache-Control", "value": "no-store" }
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
   ]

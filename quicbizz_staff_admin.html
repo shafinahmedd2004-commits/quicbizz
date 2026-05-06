@@ -15,7 +15,26 @@
 // so the service role key never reaches the browser.
 const SUPABASE_URL = 'https://kgbktrsdricudjbksnud.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnYmt0cnNkcmljdWRqYmtzbnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NjgwMTksImV4cCI6MjA5MDI0NDAxOX0.xGK_O5ZApOqA0N7JELTihdYUYIHTCMDaH2jfAT1NmzE';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+    storageKey: 'qb-staff-auth'
+  }
+});
+
+async function getValidSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session)return session;
+  const {data:{session:r}}=await sb.auth.refreshSession();
+  return r;
+}
+async function dbWrite(fn){
+  const session=await getValidSession();
+  if(!session){toast('Session expired — please log in again.','error');location.reload();return {error:{message:'Session expired'}};}
+  return fn();
+}
 
 // ── SECURE ADMIN API PROXY ───────────────────────────────────
 // Sends requests to /api/admin (Vercel serverless function).
@@ -1645,7 +1664,12 @@ const SA={
 // ── SUPABASE DATA LOADERS ────────────────────────────────────
 async function loadAllClients(){
   const {data,error}=await sb.from('clients').select('*').order('created_at',{ascending:false});
-  if(error){console.error('loadAllClients:',error);return;}
+  if(error){
+    console.error('loadAllClients error:',error.message);
+    const el=document.getElementById('clients-list');
+    if(el)el.innerHTML='<div style="padding:32px;color:#ef4444;text-align:center">Error loading clients: '+error.message+'</div>';
+    return;
+  }
   if(data){
     SA.clients=data.map(cl=>({
       id:cl.id,name:cl.business_name||cl.name,type:cl.business_type||'Business',
@@ -2820,7 +2844,7 @@ function openAddStaffModal(){
         // Insert staff record
         const {error:insErr}=await sb.from('staff').insert({
           name:n,email:e,role:r,is_active:true,
-          auth_id:authData.user?.id,
+          user_id:authData.user?.id,
           created_at:new Date().toISOString()
         });
         if(insErr)throw new Error('DB error: '+insErr.message);
