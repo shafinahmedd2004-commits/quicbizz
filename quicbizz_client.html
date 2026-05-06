@@ -13,7 +13,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken:true, persistSession:true, detectSessionInUrl:true, storageKey:'qb-auth' }
 });
-// Refresh session before writes to prevent intermittent failures
 async function ensureSession(){
   let {data:{session}}=await sb.auth.getSession();
   if(!session){const r=await sb.auth.refreshSession();session=r.data.session;}
@@ -363,7 +362,7 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
 .cl-header{padding:16px 20px;display:flex;align-items:center;gap:12px}
 .cl-av{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;background:rgba(255,255,255,.2)}
 .cl-av img{width:100%;height:100%;object-fit:cover}
-.cl-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;max-height:none;height:100%}
+.cl-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:320px;max-height:420px}
 .cl-msg{display:flex;gap:8px;align-items:flex-end;max-width:85%}
 .cl-msg-bot{align-self:flex-start}.cl-msg-user{align-self:flex-end;flex-direction:row-reverse}
 .cl-bubble{padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.55}
@@ -408,9 +407,7 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
   .chatlink-page{padding:0}
   .chatlink-page-card{border-radius:0;max-width:100%!important;height:100vh!important}
   .cl-msgs{max-height:calc(100vh - 200px)}
-  #view-chatlink{position:fixed;inset:0;overflow:hidden}
-  .chatlink-page{height:100%;padding:0!important}
-  .chatlink-page-card{height:100%!important;border-radius:0!important;display:flex;flex-direction:column}
+  .chatlink-page-card{display:flex;flex-direction:column}
   .prod-grid{grid-template-columns:1fr 1fr}
   .modal{margin:8px;padding:18px;max-height:94vh;width:calc(100% - 16px);max-width:100%}
   .modal-lg{max-width:calc(100% - 16px)}
@@ -1631,7 +1628,7 @@ function gv(v) {
   if(v==='client-admin')initCA();
   if(v==='chatlink')initCL();
   if(typeof syncThemeForView==='function')syncThemeForView(v);
-  if(v==='landing')requestAnimationFrame(()=>document.querySelectorAll('#view-landing .reveal').forEach(el=>el.classList.add('visible')));
+  if(v==='landing')requestAnimationFrame(function(){document.querySelectorAll('#view-landing .reveal').forEach(function(el){el.classList.add('visible');});});
 }
 function toggleNavMob(){
   const m=document.getElementById('nav-mob-menu');
@@ -2294,10 +2291,10 @@ function updateLogoPreview(){
 function removeLogo(){S.bizLogo=null;updateLogoPreview();updateSidebarLogo();toast('Logo removed','info');}
 
 // --- CUSTOMERS ---
-function renderCustomers(filter=''){
+function renderCustomers(filter){
+  var q=((filter||document.getElementById('cust-search')?.value)||'').toLowerCase().trim();
   const list=document.getElementById('cust-list');if(!list)return;
-  const q=(filter||'').toLowerCase().trim();
-  const filtered=q?S.customers.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)):S.customers;
+  var filtered=q?S.customers.filter(function(c){return (c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q);}):S.customers;
   const sub=document.getElementById('cust-sub');if(sub)sub.textContent=filtered.length+' customers';
   list.innerHTML=filtered.map(c=>`<div class="c-row">
     <div class="c-av">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
@@ -2734,24 +2731,24 @@ function initCL(){
     hdr.style.background=chatColor;
     hdr.style.color='#fff';
   }
-  // Apply theme to ALL chatlink cards
-  const msgs=document.getElementById('cl-msgs');
-  document.querySelectorAll('.chatlink-page-card').forEach(card=>{
+  // Apply theme to ALL chatlink cards (dashboard preview + real chatlink)
+  document.querySelectorAll('.chatlink-page-card').forEach(function(card){
     if(chatTheme==='dark'){
       card.style.background='#1a1a2e';card.style.color='#e8eaf6';
-      if(msgs){msgs.style.background='#16213e';msgs.style.color='#e8eaf6';}
     } else if(chatTheme==='custom'){
       card.style.background=chatColor+'18';card.style.color='';
-      if(msgs){msgs.style.background='';msgs.style.color='';}
     } else {
       card.style.background='';card.style.color='';
-      if(msgs){msgs.style.background='';msgs.style.color='';}
     }
   });
-  // Inject accent color CSS
-  let _st=document.getElementById('cl-theme-style');
+  var _msgs=document.getElementById('cl-msgs');
+  if(_msgs){
+    if(chatTheme==='dark'){_msgs.style.background='#16213e';_msgs.style.color='#e8eaf6';}
+    else{_msgs.style.background='';_msgs.style.color='';}
+  }
+  var _st=document.getElementById('cl-theme-style');
   if(!_st){_st=document.createElement('style');_st.id='cl-theme-style';document.head.appendChild(_st);}
-  _st.textContent=`.cl-qr{border-color:${chatColor}40;color:${chatColor}}.cl-qr:hover{background:${chatColor}12}.cl-send{background:${chatColor}!important}.cl-msg-user .cl-bubble{background:${chatColor}!important;color:#fff}`;
+  _st.textContent='.cl-qr{border-color:'+chatColor+'40;color:'+chatColor+'}.cl-qr:hover{background:'+chatColor+'12}.cl-send{background:'+chatColor+'!important}.cl-msg-user .cl-bubble{background:'+chatColor+'!important;color:#fff}';
   const nm=document.getElementById('cl-biz-name-display');if(nm)nm.textContent=bi.name||'Customer Service';
   const sl=document.getElementById('cl-biz-slogan-display');
   if(sl){if(bi.slogan){sl.textContent=bi.slogan;sl.style.display='block';}else{sl.style.display='none';}}
@@ -2759,7 +2756,7 @@ function initCL(){
   if(av){if(S.bizLogo)av.innerHTML=`<img src="${S.bizLogo}" style="width:100%;height:100%;object-fit:cover">`;else av.textContent=bi.emoji||'🍽️';}
   S.clHistory=[];
   S.currentSessionId=null;
-  const clMsgEl=document.getElementById('cl-msgs');if(clMsgEl)clMsgEl.innerHTML='';
+  const msgs=document.getElementById('cl-msgs');if(msgs)msgs.innerHTML='';
   clMsgWithImages('bot',ai.greeting||`Hi! I'm the customer service for ${bi.name}. How can I help? 😊`);
   const qrRow=document.getElementById('cl-qr-row');
   if(qrRow)qrRow.innerHTML=ai.quickReplies.slice(0,5).map(q=>`<div class="cl-qr" onclick="clSend('${q.replace(/'/g,"\\'")}')">
@@ -3896,17 +3893,14 @@ const track=document.getElementById('ticker-track');
 if(track){const all=[...tickItems,...tickItems];track.innerHTML=all.map(t=>`<div class="ticker-item"><div class="ticker-dot"></div>${t}</div>`).join('');}
 const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');ro.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
-if(document.getElementById('view-landing')?.classList.contains('active'))requestAnimationFrame(()=>document.querySelectorAll('#view-landing .reveal').forEach(el=>el.classList.add('visible')));
-
-// Mobile keyboard fix — resize chat area when keyboard opens
+if(document.getElementById('view-landing')?.classList.contains('active'))requestAnimationFrame(function(){document.querySelectorAll('#view-landing .reveal').forEach(function(el){el.classList.add('visible');});});
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{
-    const chatCard=document.querySelector('.chatlink-page-card');
-    if(!chatCard)return;
-    const vv=window.visualViewport;
-    chatCard.style.height=vv.height+'px';
-    const msgs=document.getElementById('cl-msgs');
-    if(msgs)setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},100);
+  window.visualViewport.addEventListener('resize',function(){
+    var card=document.querySelector('#view-chatlink .chatlink-page-card');
+    if(!card)return;
+    card.style.height=window.visualViewport.height+'px';
+    var msgs=document.getElementById('cl-msgs');
+    if(msgs)setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},50);
   });
 }
 
