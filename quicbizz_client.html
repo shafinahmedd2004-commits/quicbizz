@@ -13,6 +13,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken:true, persistSession:true, detectSessionInUrl:true, storageKey:'qb-auth' }
 });
+// Refresh session before writes to prevent intermittent failures
 async function ensureSession(){
   let {data:{session}}=await sb.auth.getSession();
   if(!session){const r=await sb.auth.refreshSession();session=r.data.session;}
@@ -362,7 +363,7 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
 .cl-header{padding:16px 20px;display:flex;align-items:center;gap:12px}
 .cl-av{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;background:rgba(255,255,255,.2)}
 .cl-av img{width:100%;height:100%;object-fit:cover}
-.cl-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:320px;max-height:420px}
+.cl-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0;max-height:none;height:100%}
 .cl-msg{display:flex;gap:8px;align-items:flex-end;max-width:85%}
 .cl-msg-bot{align-self:flex-start}.cl-msg-user{align-self:flex-end;flex-direction:row-reverse}
 .cl-bubble{padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.55}
@@ -407,7 +408,9 @@ footer p{font-size:12px;color:rgba(255,255,255,.35)}
   .chatlink-page{padding:0}
   .chatlink-page-card{border-radius:0;max-width:100%!important;height:100vh!important}
   .cl-msgs{max-height:calc(100vh - 200px)}
-  .chatlink-page-card{display:flex;flex-direction:column}
+  #view-chatlink{position:fixed;inset:0;overflow:hidden}
+  .chatlink-page{height:100%;padding:0!important}
+  .chatlink-page-card{height:100%!important;border-radius:0!important;display:flex;flex-direction:column}
   .prod-grid{grid-template-columns:1fr 1fr}
   .modal{margin:8px;padding:18px;max-height:94vh;width:calc(100% - 16px);max-width:100%}
   .modal-lg{max-width:calc(100% - 16px)}
@@ -1628,7 +1631,7 @@ function gv(v) {
   if(v==='client-admin')initCA();
   if(v==='chatlink')initCL();
   if(typeof syncThemeForView==='function')syncThemeForView(v);
-  if(v==='landing')requestAnimationFrame(function(){document.querySelectorAll('#view-landing .reveal').forEach(function(el){el.classList.add('visible');});});
+  if(v==='landing')requestAnimationFrame(()=>document.querySelectorAll('#view-landing .reveal').forEach(el=>el.classList.add('visible')));
 }
 function toggleNavMob(){
   const m=document.getElementById('nav-mob-menu');
@@ -2009,8 +2012,9 @@ function renderOrders(){
 }
 async function delOrder(id){
   if(!confirm('Delete order?'))return;
-  const {data:r,error}=await sb.rpc('delete_order',{p_order_id:id});
-  if(error||r?.error){toast('Delete failed: '+(error?.message||r?.error),'error');return;}
+  await ensureSession();
+  const {error}=await sb.from('orders').delete().eq('id',id);
+  if(error){toast('Delete failed: '+error.message,'error');return;}
   S.orders=S.orders.filter(o=>o.id!==id);
   renderOrders();updateMetrics();renderOvOrders();toast('Order deleted','info');
 }
@@ -2025,8 +2029,9 @@ function editOrder(id){
     [{label:'Save',primary:true,fn:async()=>{
       const newCust=V('eo-c'),newItems=V('eo-i'),newTotal=+V('eo-t'),newStatus=V('eo-s'),newNotes=V('eo-notes');
       if(S.clientId){
-        const {data:r,error}=await sb.rpc('save_order',{p:{id:o.id,client_id:S.clientId,customer_name:newCust,items:newItems,total:newTotal,status:newStatus,notes:newNotes||''}});
-        if(error||r?.error){toast('Save failed: '+(error?.message||r?.error),'error');return;}
+        await ensureSession();
+        const {error}=await sb.from('orders').update({customer_name:newCust,items:newItems,total:newTotal,status:newStatus,notes:newNotes||''}).eq('id',o.id);
+        if(error){toast('Save failed: '+error.message,'error');return;}
       }
       // Always update local state
       o.customer=newCust;o.items=newItems;o.total=newTotal;o.status=newStatus;o.notes=newNotes;
@@ -2051,9 +2056,10 @@ function openAddOrderModal(){
       const c=V('ao-c'),i=V('ao-i');if(!c||!i){toast('Fill required fields','error');return;}
       const newOrder={client_id:S.clientId,customer_name:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')};
       if(S.clientId){
-        const {data:r,error}=await sb.rpc('save_order',{p:{client_id:S.clientId,customer_name:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')}});
-        if(error||r?.error){toast('Error saving order: '+(error?.message||r?.error),'error');return;}
-        S.orders.unshift({id:r.id,customer:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')});
+        await ensureSession();
+        const {data:newOrd,error}=await sb.from('orders').insert({client_id:S.clientId,customer_name:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')}).select().single();
+        if(error){toast('Error saving order: '+error.message,'error');return;}
+        S.orders.unshift({id:newOrd.id,customer:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')});
       } else {
         S.orders.unshift({id:S.nextOrdId++,customer:c,channel:V('ao-ch'),items:i,total:+V('ao-t')||0,status:V('ao-st')});
       }
@@ -2108,11 +2114,12 @@ function openAddProductModal(){
         description:V('np-desc'),category:V('np-cat')||'General',
         stock:+V('np-stock')||0,sku:V('np-sku'),emoji:V('np-emoji')||'📦',
         sizes:sizes,images:photos,tags:[]};
-      const {data:r,error:prodErr}=await sb.rpc('save_product',{p:newProd});
-      if(prodErr||r?.error){toast('Error saving product: '+(prodErr?.message||r?.error),'error');return;}
-      S.products.unshift({id:r.id,name,price:+V('np-price')||0,stock:+V('np-stock')||0,
-        emoji:V('np-emoji')||'📦',desc:V('np-desc'),cat:V('np-cat')||'General',
-        photos,sizes,colors,sku:V('np-sku')});
+      await ensureSession();
+      const {data:savedProd,error:prodErr}=await sb.from('products').insert(newProd).select().single();
+      if(prodErr){toast('Error saving product: '+prodErr.message,'error');return;}
+      S.products.unshift({id:savedProd.id,name,price:savedProd.price,stock:savedProd.stock,
+        emoji:savedProd.emoji,desc:savedProd.description,cat:savedProd.category,
+        photos:savedProd.images||[],sizes:savedProd.sizes||[],colors,sku:savedProd.sku});
       window._pendingPhotos=[];
       renderProducts();cm();toast('Product added!','success');
     }}],
@@ -2166,14 +2173,14 @@ function editProduct(id){
       if(S.clientId && isUUID){
         const btn=document.querySelector('#mfooter .btn-primary');
         if(btn){btn.disabled=true;btn.textContent='Saving...';}
-        const {data:r,error}=await sb.rpc('save_product',{p:{
-          id:p.id,client_id:S.clientId,
+        await ensureSession();
+        const {error}=await sb.from('products').update({
           name:V('ep-name'),price:+V('ep-price')||0,description:V('ep-desc'),
           category:V('ep-cat')||'General',stock:+V('ep-stock')||0,sku:V('ep-sku')||'',
           emoji:V('ep-emoji')||'📦',sizes:sizes,images:updatedPhotos,tags:[]
-        }});
+        }).eq('id',p.id);
         if(btn){btn.disabled=false;btn.textContent='Save changes';}
-        if(error||r?.error){toast('Error saving: '+(error?.message||r?.error),'error');return;}
+        if(error){toast('Error saving: '+error.message,'error');return;}
       }
       // Always update local state
       p.name=V('ep-name');p.price=+V('ep-price')||0;p.desc=V('ep-desc');
@@ -2200,8 +2207,9 @@ async function delProduct(id){
     S.products=S.products.filter(p=>p.id!==id);
     renderProducts();toast('Removed from catalog','info');return;
   }
-  const {data:r,error}=await sb.rpc('delete_product',{p_product_id:id});
-  if(error||r?.error){toast('Delete failed: '+(error?.message||r?.error),'error');return;}
+  await ensureSession();
+  const {error}=await sb.from('products').delete().eq('id',id);
+  if(error){toast('Delete failed: '+error.message,'error');return;}
   S.products=S.products.filter(p=>p.id!==id);
   renderProducts();toast('Product removed','success');
 }
@@ -2291,10 +2299,10 @@ function updateLogoPreview(){
 function removeLogo(){S.bizLogo=null;updateLogoPreview();updateSidebarLogo();toast('Logo removed','info');}
 
 // --- CUSTOMERS ---
-function renderCustomers(filter){
-  var q=((filter||document.getElementById('cust-search')?.value)||'').toLowerCase().trim();
+function renderCustomers(filter=''){
   const list=document.getElementById('cust-list');if(!list)return;
-  var filtered=q?S.customers.filter(function(c){return (c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q);}):S.customers;
+  const q=(filter||'').toLowerCase().trim();
+  const filtered=q?S.customers.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)):S.customers;
   const sub=document.getElementById('cust-sub');if(sub)sub.textContent=filtered.length+' customers';
   list.innerHTML=filtered.map(c=>`<div class="c-row">
     <div class="c-av">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
@@ -2323,6 +2331,7 @@ function delCust(name){if(!confirm('Remove?'))return;S.customers=S.customers.fil
 // --- CHAT SESSIONS ---
 async function renderSessions(){
   const el=document.getElementById('sessions-list');if(!el)return;
+  if(!S.clientId){let w=0;await new Promise(res=>{const t=setInterval(()=>{w+=100;if(S.clientId||w>=3000){clearInterval(t);res();}},100);});}
   if(!S.clientId){el.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">Not logged in.</div>';return;}
   el.innerHTML='<div style="padding:32px;text-align:center;color:var(--muted)"><div class="spin" style="width:22px;height:22px;border-width:3px;margin:0 auto 10px"></div>Loading sessions…</div>';
   try{
@@ -2461,8 +2470,9 @@ async function saveAI(){
     chat_color:S.aiConfig.chatColor||'#2563ff',
     updated_at:new Date().toISOString()
   };
-  const {data:rpcRes,error}=await sb.rpc('save_ai_config',{p:payload});
-  if(error||rpcRes?.error){toast('Save failed: '+(error?.message||rpcRes?.error),'error');return;}
+  await ensureSession();
+  const {error}=await sb.from('ai_configs').upsert(payload,{onConflict:'client_id'});
+  if(error){toast('Save failed: '+error.message,'error');return;}
   toast('AI settings saved! ✓','success');
 }
 
@@ -2565,11 +2575,12 @@ async function saveSettings(){
       sf_api_key:gv2('set-sf-key')||'',
       sf_secret_key:gv2('set-sf-secret')||''
     };
-    const {data:rpcRes,error}=await sb.rpc('save_client_profile',{p:updateData});
-    if(error||rpcRes?.error){
+    await ensureSession();
+    const {error}=await sb.from('clients').update(updateData).eq('id',S.clientId);
+    if(error){
       const errEl=document.getElementById('settings-save-error');
-      if(errEl){errEl.style.display='block';errEl.textContent='Save failed: '+(error?.message||rpcRes?.error);}
-      toast('Save failed: '+(error?.message||rpcRes?.error),'error');return;
+      if(errEl){errEl.style.display='block';errEl.textContent='Save failed: '+error.message;}
+      toast('Save failed: '+error.message,'error');return;
     }
     const errEl=document.getElementById('settings-save-error');
     if(errEl)errEl.style.display='none';
@@ -2731,24 +2742,39 @@ function initCL(){
     hdr.style.background=chatColor;
     hdr.style.color='#fff';
   }
-  // Apply theme to ALL chatlink cards (dashboard preview + real chatlink)
-  document.querySelectorAll('.chatlink-page-card').forEach(function(card){
+  // Apply theme to ALL chatlink cards
+  const msgs=document.getElementById('cl-msgs');
+  document.querySelectorAll('.chatlink-page-card').forEach(card=>{
     if(chatTheme==='dark'){
       card.style.background='#1a1a2e';card.style.color='#e8eaf6';
+      if(msgs){msgs.style.background='#16213e';msgs.style.color='#e8eaf6';}
     } else if(chatTheme==='custom'){
       card.style.background=chatColor+'18';card.style.color='';
+      if(msgs){msgs.style.background='';msgs.style.color='';}
     } else {
       card.style.background='';card.style.color='';
+      if(msgs){msgs.style.background='';msgs.style.color='';}
     }
   });
-  var _msgs=document.getElementById('cl-msgs');
-  if(_msgs){
-    if(chatTheme==='dark'){_msgs.style.background='#16213e';_msgs.style.color='#e8eaf6';}
-    else{_msgs.style.background='';_msgs.style.color='';}
-  }
-  var _st=document.getElementById('cl-theme-style');
+  // Inject accent color + full dark theme CSS
+  let _st=document.getElementById('cl-theme-style');
   if(!_st){_st=document.createElement('style');_st.id='cl-theme-style';document.head.appendChild(_st);}
-  _st.textContent='.cl-qr{border-color:'+chatColor+'40;color:'+chatColor+'}.cl-qr:hover{background:'+chatColor+'12}.cl-send{background:'+chatColor+'!important}.cl-msg-user .cl-bubble{background:'+chatColor+'!important;color:#fff}';
+  const darkCSS=chatTheme==='dark'?`
+    .chatlink-page{background:#0d1526!important}
+    .chatlink-page-card{background:#1a1a2e!important}
+    .cl-msgs{background:#16213e!important;color:#e8eaf6!important}
+    .cl-bubble-bot{background:#1e2d45!important;border-color:rgba(255,255,255,0.12)!important;color:#e8eaf6!important}
+    .cl-input{background:#1e2d45!important;color:#e8eaf6!important;border-color:rgba(255,255,255,0.15)!important}
+    .cl-input::placeholder{color:#64748b!important}
+    .cl-chat-header{background:${chatColor}!important}
+    .cl-qr{background:#1e2d45!important;border-color:${chatColor}60!important;color:${chatColor}!important}
+    .cl-qr:hover{background:#253555!important}
+    .cl-input-row{background:#1a1a2e!important;border-color:rgba(255,255,255,0.08)!important}
+    .cl-send{background:${chatColor}!important}
+    .cl-msg-user .cl-bubble{background:${chatColor}!important;color:#fff!important}
+    .cl-footer{color:#64748b!important}
+  `:'';
+  _st.textContent=`.cl-qr{border-color:${chatColor}40;color:${chatColor}}.cl-qr:hover{background:${chatColor}12}.cl-send{background:${chatColor}!important}.cl-msg-user .cl-bubble{background:${chatColor}!important;color:#fff}${darkCSS}`;
   const nm=document.getElementById('cl-biz-name-display');if(nm)nm.textContent=bi.name||'Customer Service';
   const sl=document.getElementById('cl-biz-slogan-display');
   if(sl){if(bi.slogan){sl.textContent=bi.slogan;sl.style.display='block';}else{sl.style.display='none';}}
@@ -2756,7 +2782,7 @@ function initCL(){
   if(av){if(S.bizLogo)av.innerHTML=`<img src="${S.bizLogo}" style="width:100%;height:100%;object-fit:cover">`;else av.textContent=bi.emoji||'🍽️';}
   S.clHistory=[];
   S.currentSessionId=null;
-  const msgs=document.getElementById('cl-msgs');if(msgs)msgs.innerHTML='';
+  const clMsgEl=document.getElementById('cl-msgs');if(clMsgEl)clMsgEl.innerHTML='';
   clMsgWithImages('bot',ai.greeting||`Hi! I'm the customer service for ${bi.name}. How can I help? 😊`);
   const qrRow=document.getElementById('cl-qr-row');
   if(qrRow)qrRow.innerHTML=ai.quickReplies.slice(0,5).map(q=>`<div class="cl-qr" onclick="clSend('${q.replace(/'/g,"\\'")}')">
@@ -3783,7 +3809,17 @@ function showCLLoading(show){
     document.getElementById('main-nav').style.display='none';
     // Wrap entire chat init in try/catch so loading screen always hides even on error
     try{
+    S.clientId=null;S.biz={name:'',type:'',phone:'',address:'',hours:'',emoji:'🏪',slogan:'',bkash:'',nagad:''};S.bizLogo=null;S.apiKey=null;S.geminiKey=null;S.groqKey=null;S.aiProvider='anthropic';S.clHistory=[];S.currentSessionId=null;S.products=[];
     const {data:client}=await sb.from('clients').select('*').eq('id',chatClientId).maybeSingle();
+    if(!client){
+      showCLLoading(false);
+      const _msgEl=document.getElementById('cl-msgs');
+      if(_msgEl)_msgEl.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;padding:40px;text-align:center;gap:16px"><div style="font-size:48px">🔍</div><div style="font-size:18px;font-weight:800">Chat Not Found</div><div style="font-size:14px;color:var(--sub)">This link is invalid or the business is no longer active.</div></div>';
+      const _ir=document.querySelector('.cl-input-row');if(_ir)_ir.style.display='none';
+      const _qr=document.getElementById('cl-qr-row');if(_qr)_qr.style.display='none';
+      document.getElementById('cl-dashboard-btn')?.style.setProperty('display','none');
+      gv('chatlink');return;
+    }
     if(client){
       // ── TRIAL ENFORCEMENT ──────────────────────────────────
       if(client.status==='Trial'||client.plan==='Trial'){
@@ -3893,14 +3929,17 @@ const track=document.getElementById('ticker-track');
 if(track){const all=[...tickItems,...tickItems];track.innerHTML=all.map(t=>`<div class="ticker-item"><div class="ticker-dot"></div>${t}</div>`).join('');}
 const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');ro.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
-if(document.getElementById('view-landing')?.classList.contains('active'))requestAnimationFrame(function(){document.querySelectorAll('#view-landing .reveal').forEach(function(el){el.classList.add('visible');});});
+if(document.getElementById('view-landing')?.classList.contains('active'))requestAnimationFrame(()=>document.querySelectorAll('#view-landing .reveal').forEach(el=>el.classList.add('visible')));
+
+// Mobile keyboard fix — resize chat area when keyboard opens
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',function(){
-    var card=document.querySelector('#view-chatlink .chatlink-page-card');
-    if(!card)return;
-    card.style.height=window.visualViewport.height+'px';
-    var msgs=document.getElementById('cl-msgs');
-    if(msgs)setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},50);
+  window.visualViewport.addEventListener('resize',()=>{
+    const chatCard=document.querySelector('.chatlink-page-card');
+    if(!chatCard)return;
+    const vv=window.visualViewport;
+    chatCard.style.height=vv.height+'px';
+    const msgs=document.getElementById('cl-msgs');
+    if(msgs)setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},100);
   });
 }
 
